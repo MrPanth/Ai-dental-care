@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: aidental_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - aidental_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: aidental_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aidental_net
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aidental_backend
+    ports:
+      - "5001:5001"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/aidentalcare
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-SuperSecretJWTKey123!}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - NODE_ENV=production
+      - PORT=5001
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+    networks:
+      - aidental_net
+    restart: unless-stopped
+
+  frontend:
+    image: node:18-alpine
+    container_name: aidental_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    depends_on:
+      - backend
+    networks:
+      - aidental_net
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  aidental_net:
+    driver: bridge
