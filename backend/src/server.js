@@ -17,15 +17,19 @@ const app = express();
 const server = http.createServer(app);
 
 // Secure CORS configuration
+const clientUrlEnv = process.env.CLIENT_URL || '';
+const clientOrigins = clientUrlEnv.split(',').map(url => url.trim()).filter(Boolean);
+
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
+  ...clientOrigins,
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const isVercel = origin && (origin.endsWith('.vercel.app') || origin === 'https://vercel.app');
+    if (!origin || allowedOrigins.includes(origin) || isVercel) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
