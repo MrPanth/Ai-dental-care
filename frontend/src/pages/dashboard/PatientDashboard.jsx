@@ -208,7 +208,8 @@ export default function PatientDashboard() {
     if (!user) return;
     // Connect to backend server (port 5000) explicitly
     const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const socket = io(backendUrl);
+    const socketUrl = backendUrl.replace(/\/api$/, '');
+    const socket = io(socketUrl);
     const userId = user.id || user._id;
     
     socket.emit('join', userId);
