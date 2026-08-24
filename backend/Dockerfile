@@ -23,7 +23,7 @@ RUN mkdir -p uploads logs && chown -R node:node /app
 USER node
 
 # Expose port
-EXPOSE 5001
+EXPOSE 5000
 
 # Start the service
 CMD ["node", "src/server.js"]

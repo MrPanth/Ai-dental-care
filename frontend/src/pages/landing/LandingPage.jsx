@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '../../store/useAuthStore';
 import { 
   Shield, 
   Activity, 
@@ -19,6 +20,15 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const { user, logout } = useAuthStore();
+
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin-dashboard';
+    if (user.role === 'doctor') return user.isApproved ? '/doctor-dashboard' : '/doctor-pending';
+    return '/patient-dashboard';
+  };
+
   // Framer Motion animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -51,8 +61,17 @@ export default function LandingPage() {
           <a href="#testimonials" className="landing-nav-link">Testimonials</a>
         </div>
         <div className="landing-nav-actions">
-          <Link to="/login" className="btn btn-ghost btn-sm">Log In</Link>
-          <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
+          {user ? (
+            <>
+              <Link to={getDashboardPath()} className="btn btn-primary btn-sm">Dashboard</Link>
+              <button onClick={logout} className="btn btn-ghost btn-sm" style={{ marginLeft: '8px' }}>Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-ghost btn-sm">Log In</Link>
+              <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -64,18 +83,21 @@ export default function LandingPage() {
           animate="visible"
           variants={fadeInUp}
         >
-          <div className="hero-eyebrow">
-            <Sparkles size={14} className="text-primary" />
-            <span>AI Oral Diagnostics Platform</span>
-          </div>
+
           <h1>AI-Powered Dental Care <br />For a <span>Healthier Smile</span></h1>
           <p>
             Experience the future of dentistry. Upload a photo of your teeth, receive instant automated AI findings, and get connected with verified same-city dental clinics for professional consultation and treatment plans.
           </p>
           <div className="hero-actions">
-            <Link to="/register" className="btn btn-primary btn-lg">
-              Get Started <ArrowRight size={18} />
-            </Link>
+            {user ? (
+              <Link to={getDashboardPath()} className="btn btn-primary btn-lg">
+                Go to Dashboard <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <Link to="/register" className="btn btn-primary btn-lg">
+                Get Started <ArrowRight size={18} />
+              </Link>
+            )}
             <a href="#about" className="btn btn-outline btn-lg">Learn More</a>
           </div>
         </motion.div>
@@ -203,40 +225,61 @@ export default function LandingPage() {
           <h2>How It Works</h2>
           <p>Three simple steps to better dental health</p>
         </div>
-        <motion.div 
-          className="steps-grid-new"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={staggerContainer}
-        >
-          <motion.div className="step-card-new" variants={fadeInUp}>
-            <div className="step-badge-new">01</div>
-            <div className="step-icon-wrapper">
-              <Upload size={22} />
+        
+        <div className="timeline-container">
+          <div className="timeline-line"></div>
+          
+          <motion.div 
+            className="timeline-item timeline-left"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            <div className="timeline-badge">01</div>
+            <div className="timeline-content">
+              <div className="step-icon-wrapper">
+                <Upload size={22} />
+              </div>
+              <h3>Upload Your Image</h3>
+              <p>Take a clear photo of your teeth using your smartphone or camera and upload it securely to our web application.</p>
             </div>
-            <h3>Upload Your Image</h3>
-            <p>Take a clear photo of your teeth using your smartphone or camera and upload it securely to our web application.</p>
           </motion.div>
 
-          <motion.div className="step-card-new" variants={fadeInUp}>
-            <div className="step-badge-new">02</div>
-            <div className="step-icon-wrapper">
-              <Cpu size={22} />
+          <motion.div 
+            className="timeline-item timeline-right"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            <div className="timeline-badge">02</div>
+            <div className="timeline-content">
+              <div className="step-icon-wrapper">
+                <Cpu size={22} />
+              </div>
+              <h3>AI Analyzes Instantly</h3>
+              <p>Our deep learning dental model scans for cavities, tartar, gingivitis, and other structural dental conditions in seconds.</p>
             </div>
-            <h3>AI Analyzes Instantly</h3>
-            <p>Our deep learning dental model scans for cavities, tartar, gingivitis, and other structural dental conditions in seconds.</p>
           </motion.div>
 
-          <motion.div className="step-card-new" variants={fadeInUp}>
-            <div className="step-badge-new">03</div>
-            <div className="step-icon-wrapper">
-              <Calendar size={22} />
+          <motion.div 
+            className="timeline-item timeline-left"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+          >
+            <div className="timeline-badge">03</div>
+            <div className="timeline-content">
+              <div className="step-icon-wrapper">
+                <Calendar size={22} />
+              </div>
+              <h3>Meet Your Local Dentist</h3>
+              <p>Review your AI diagnostic sheet. The report is instantly shared with a verified same-city clinic to book your final checkup.</p>
             </div>
-            <h3>Meet Your Local Dentist</h3>
-            <p>Review your AI diagnostic sheet. The report is instantly shared with a verified same-city clinic to book your final checkup.</p>
           </motion.div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Testimonials Section */}
@@ -333,7 +376,7 @@ export default function LandingPage() {
               <img src="/logo.png" alt="AI Dental Care Logo" className="footer-logo-img" />
               <h4>AI Dental Care</h4>
             </div>
-            <p>Smart 2D dental diagnostics powered by artificial intelligence. Book in-clinic appointments with verified professionals in your city.</p>
+            <p>Smart dental diagnostics powered by artificial intelligence. Book in-clinic appointments with verified professionals in your city.</p>
           </div>
           <div className="footer-links">
             <h5>Navigation</h5>

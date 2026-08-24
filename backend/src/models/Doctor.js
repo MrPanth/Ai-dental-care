@@ -21,6 +21,7 @@ const DoctorSchema = new mongoose.Schema({
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   approvedAt: { type: Date, default: null },
   documents: [String],
+  profilePhoto: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

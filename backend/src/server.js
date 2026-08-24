@@ -9,14 +9,21 @@ const User = require('./models/User');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
 const server = http.createServer(app);
 
-// Dynamic localhost CORS handler
-const localCorsOptions = {
+// Secure CORS configuration
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+];
+
+const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || origin.startsWith('http://localhost:')) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -27,7 +34,7 @@ const localCorsOptions = {
 
 const io = socketIo(server, {
   cors: {
-    ...localCorsOptions,
+    ...corsOptions,
     methods: ["GET", "POST"]
   }
 });
@@ -35,11 +42,25 @@ const io = socketIo(server, {
 // Connect to MongoDB
 connectDB();
 
-// Security Middleware
-app.use(helmet({ contentSecurityPolicy: false })); // Basic headers
-app.use(cors(localCorsOptions));
+// Security Middleware (Content Security Policy configured securely)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://ui-avatars.com"],
+      connectSrc: ["'self'", "ws://localhost:5000", "http://localhost:5000", "ws://localhost:5001", "http://localhost:5001", "wss:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    }
+  }
+}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -72,16 +93,22 @@ app.get('/', (req, res) => {
 // Seed admin account
 const seedAdmin = async () => {
   try {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      console.warn('⚠️  ADMIN_EMAIL or ADMIN_PASSWORD not set in .env — skipping admin seed.');
+      return;
+    }
     const adminExists = await User.findOne({ role: 'admin' });
     if (!adminExists) {
       await User.create({
         name: 'Admin',
-        email: 'admin@dentalcare.com',
-        password: 'Admin@123',
+        email: adminEmail,
+        password: adminPassword,
         role: 'admin',
         city: 'all'
       });
-      console.log('Admin account seeded: admin@dentalcare.com / Admin@123');
+      console.log(`Admin account seeded: ${adminEmail}`);
     }
   } catch (error) {
     console.error('Seed admin error:', error.message);

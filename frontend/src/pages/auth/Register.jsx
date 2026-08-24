@@ -2,7 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
+const CITIES = [
+  'mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad',
+  'chennai', 'kolkata', 'pune', 'jaipur', 'lucknow',
+  'kanpur', 'nagpur', 'indore', 'thane', 'bhopal',
+  'visakhapatnam', 'pimpri-chinchwad', 'patna', 'vadodara',
+  'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad',
+  'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad',
+  'dhanbad', 'amritsar', 'navi mumbai', 'allahabad',
+  'ranchi', 'howrah', 'coimbatore', 'jabalpur', 'gwalior',
+  'vijayawada', 'jodhpur', 'madurai', 'raipur', 'kota',
+  'chandigarh', 'guwahati', 'solapur', 'hubli-dharwad',
+  'mysore', 'tiruchirappalli', 'bareilly', 'aligarh',
+  'tiruppur', 'moradabad', 'jalandhar', 'bhubaneswar',
+  'salem', 'warangal', 'guntur', 'bhiwandi', 'saharanpur',
+  'gorakhpur', 'bikaner', 'amravati', 'noida', 'jamshedpur',
+  'bhilai', 'cuttack', 'firozabad', 'kochi', 'nellore',
+  'bhavnagar', 'dehradun', 'durgapur', 'asansol', 'rourkela',
+  'nanded', 'kolhapur', 'ajmer', 'akola', 'gulbarga',
+  'jamnagar', 'ujjain', 'loni', 'siliguri', 'jhansi',
+  'ulhasnagar', 'jammu', 'sangli-miraj', 'mangalore',
+  'erode', 'belgaum', 'ambattur', 'tirunelveli', 'malegaon',
+  'gaya', 'jalgaon', 'udaipur', 'maheshtala'
+];
 const SPECIALIZATIONS = [
   'General Dentistry', 'Orthodontics', 'Periodontics', 
   'Endodontics', 'Oral Surgery', 'Pediatric Dentistry', 
@@ -90,7 +112,7 @@ export default function Register() {
     if (!validateForm()) return;
 
     setLoading(true);
-    const payload = { role, name, email, password, city };
+    const payload = { role, name, email, password, confirmPassword, city };
 
     if (role === 'patient') {
       payload.phone = patientPhone;
@@ -99,13 +121,11 @@ export default function Register() {
       payload.medicalHistory = medicalHistory;
     } else {
       payload.phone = phone;
-      payload.doctorDetails = {
-        specialization,
-        licenseNumber,
-        experienceYears: parseInt(experience),
-        clinicName,
-        clinicAddress
-      };
+      payload.specialization = specialization;
+      payload.licenseNumber = licenseNumber;
+      payload.experience = parseInt(experience);
+      payload.clinicName = clinicName;
+      payload.clinicAddress = clinicAddress;
     }
 
     const result = await registerStore(payload);
@@ -209,8 +229,15 @@ export default function Register() {
               placeholder="Search city (e.g. Mumbai)" 
               value={citySearch}
               onChange={(e) => {
-                setCitySearch(e.target.value);
-                setCity('');
+                const val = e.target.value;
+                setCitySearch(val);
+                // Allow direct typing: set city if it matches a valid city
+                const normalized = val.toLowerCase().trim();
+                if (CITIES.includes(normalized)) {
+                  setCity(normalized);
+                } else {
+                  setCity('');
+                }
                 setShowDropdown(true);
               }}
               onFocus={() => setShowDropdown(true)}

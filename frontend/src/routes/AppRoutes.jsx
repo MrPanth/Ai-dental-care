@@ -46,7 +46,7 @@ export default function AppRoutes() {
     if (user.role === 'doctor') {
       return user.isApproved ? 
         <Navigate to="/doctor-dashboard" replace /> : 
-        <Navigate to="/doctor-pending" replace />;
+        <LandingPage />;
     }
     return <Navigate to="/patient-dashboard" replace />;
   };

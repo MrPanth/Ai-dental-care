@@ -14,5 +14,10 @@ export const appointmentService = {
   cancelAppointment: async (id) => {
     const response = await apiClient.post(`/api/appointments/${id}/cancel`);
     return response.data;
+  },
+
+  rescheduleAppointment: async (id, { date, time }) => {
+    const response = await apiClient.put(`/api/appointments/${id}/reschedule`, { date, time });
+    return response.data;
   }
 };

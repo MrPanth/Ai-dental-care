@@ -28,6 +28,9 @@ exports.updateProfile = async (req, res) => {
       // Also update user city
       await User.findByIdAndUpdate(req.user._id, { city: city.toLowerCase().trim() });
     }
+    if (req.file) {
+      doctor.profilePhoto = `/uploads/${req.file.filename}`;
+    }
     await doctor.save();
     res.json({ message: 'Profile updated', doctor });
   } catch (error) {

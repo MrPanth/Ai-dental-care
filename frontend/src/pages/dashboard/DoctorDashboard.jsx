@@ -18,7 +18,8 @@ import {
   User,
   Activity,
   CheckCircle,
-  Phone
+  Phone,
+  Camera
 } from 'lucide-react';
 
 const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
@@ -48,6 +49,11 @@ export default function DoctorDashboard() {
   const [reports, setReports] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Profile photo (real value from DB, replaces dead localStorage-based avatar)
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   // Review Modal state
   const [selectedReport, setSelectedReport] = useState(null);
@@ -87,6 +93,7 @@ export default function DoctorDashboard() {
         setProfileClinicAddress(d.clinicAddress || '');
         setProfileCity(d.city || '');
         setProfileCitySearch(d.city ? d.city.charAt(0).toUpperCase() + d.city.slice(1) : '');
+        setProfilePhoto(d.profilePhoto || null);
       }
     } catch (err) {
       console.error('Error loading doctor data:', err);
@@ -151,15 +158,30 @@ export default function DoctorDashboard() {
       return;
     }
     try {
-      const payload = {
-        phone: profilePhone,
-        clinicName: profileClinicName,
-        clinicAddress: profileClinicAddress,
-        city: profileCity,
-        specialization: profileSpecialization,
-        experience: profileExperience
-      };
+      let payload;
+      if (photoFile) {
+        // Send as FormData so multer can process the file
+        payload = new FormData();
+        payload.append('phone', profilePhone);
+        payload.append('clinicName', profileClinicName);
+        payload.append('clinicAddress', profileClinicAddress);
+        payload.append('city', profileCity);
+        payload.append('specialization', profileSpecialization);
+        payload.append('experience', profileExperience);
+        payload.append('profilePhoto', photoFile);
+      } else {
+        payload = {
+          phone: profilePhone,
+          clinicName: profileClinicName,
+          clinicAddress: profileClinicAddress,
+          city: profileCity,
+          specialization: profileSpecialization,
+          experience: profileExperience
+        };
+      }
       await doctorService.updateProfile(payload);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       alert('Profile updated successfully!');
       loadData();
     } catch (err) {
@@ -169,7 +191,7 @@ export default function DoctorDashboard() {
   };
 
   return (
-    <div className={`dashboard-layout ${sidebarOpen ? 'sidebar-open' : ''}`}>
+    <div className={`dashboard-layout theme-teal ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
@@ -215,18 +237,9 @@ export default function DoctorDashboard() {
           </button>
         </nav>
         <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar-new">
-              <span className="sidebar-avatar-text">DR</span>
-            </div>
-            <div className="sidebar-user-details">
-              <div className="sidebar-user-name" style={{ textTransform: 'capitalize' }}>Dr. {user?.name}</div>
-              <div className="sidebar-user-role" style={{ textTransform: 'capitalize' }}>{user?.city || '—'}</div>
-            </div>
-          </div>
           <button type="button" className="btn-signout-new" onClick={logout}>
-            <LogOut size={14} />
-            <span>Sign Out</span>
+            <LogOut size={18} />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -249,7 +262,19 @@ export default function DoctorDashboard() {
             </span>
           </div>
           <div className="topbar-right">
-            <span className="topbar-badge-role" style={{ textTransform: 'capitalize' }}>City: {user?.city || '—'}</span>
+            <div className="admin-header-profile" onClick={() => setActiveSection('profile')} title="View profile settings">
+              <div className="admin-user-avatar">
+                {(photoPreview || profilePhoto) ? (
+                  <img src={photoPreview || profilePhoto} alt={user?.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  (user?.name ? user.name.slice(0, 2).toUpperCase() : 'DR')
+                )}
+              </div>
+              <div className="admin-user-info">
+                <span className="admin-user-name" style={{ textTransform: 'capitalize' }}>Dr. {user?.name || 'Doctor'}</span>
+                <span className="admin-user-city" style={{ textTransform: 'capitalize' }}>{user?.city || 'Mumbai'}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -493,82 +518,120 @@ export default function DoctorDashboard() {
                 <p>Manage and update your clinic details and credentials</p>
               </div>
 
-              <div className="card">
-                <div className="card-body">
-                  <form onSubmit={handleUpdateProfile} noValidate>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">Full Name</label>
-                        <input type="text" className="form-control" value={user?.name || ''} disabled style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }} />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Registered Email</label>
-                        <input type="email" className="form-control" value={user?.email || ''} disabled style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed' }} />
-                      </div>
+              {/* Hidden file input */}
+              <input
+                id="profilePhotoInput"
+                type="file"
+                accept="image/jpeg,image/png"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  setPhotoFile(file);
+                  const reader = new FileReader();
+                  reader.onloadend = () => setPhotoPreview(reader.result);
+                  reader.readAsDataURL(file);
+                }}
+              />
+
+              {/* Unified profile card */}
+              <form onSubmit={handleUpdateProfile} noValidate>
+                <div className="profile-unified-card">
+
+                  {/* ── Header row ── */}
+                  <div className="profile-unified-header">
+                    {/* Circular avatar */}
+                    <div className="profile-unified-avatar">
+                      {(photoPreview || profilePhoto) ? (
+                        <img src={photoPreview || profilePhoto} alt="Profile" />
+                      ) : (
+                        user?.name ? user.name.slice(0, 2).toUpperCase() : 'DR'
+                      )}
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">Dental Specialization</label>
-                        <select 
-                          className="form-control select-control" 
-                          value={profileSpecialization} 
-                          onChange={(e) => setProfileSpecialization(e.target.value)}
-                        >
-                          {SPECIALIZATIONS.map(spec => (
-                            <option key={spec} value={spec}>{spec}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Clinic Contact Phone</label>
-                        <input 
-                          type="tel" 
-                          className="form-control" 
-                          value={profilePhone} 
-                          onChange={(e) => setProfilePhone(e.target.value)} 
-                        />
-                      </div>
+                    {/* Name + subtitle */}
+                    <div className="profile-unified-identity">
+                      <h2>{user?.name || 'Doctor Name'}</h2>
+                      <p>{profileSpecialization || 'General Dentistry'}{user?.email ? ` · ${user.email}` : ''}</p>
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">Clinic Name</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          value={profileClinicName} 
-                          onChange={(e) => setProfileClinicName(e.target.value)} 
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Professional Experience (years)</label>
-                        <input 
-                          type="number" 
-                          className="form-control" 
-                          min="0" 
-                          value={profileExperience} 
-                          onChange={(e) => setProfileExperience(e.target.value)} 
-                        />
-                      </div>
+                    {/* Change photo button */}
+                    <button
+                      type="button"
+                      className="profile-unified-change-photo-btn"
+                      onClick={() => document.getElementById('profilePhotoInput').click()}
+                    >
+                      <Camera size={14} />
+                      {profilePhoto ? 'Change photo' : 'Upload photo'}
+                    </button>
+                    {photoFile && (
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>{photoFile.name}</span>
+                    )}
+                  </div>
+
+                  {/* ── 2-column form grid ── */}
+                  <div className="profile-unified-form">
+
+                    <div className="profile-unified-field">
+                      <label className="profile-unified-label">Dental Specialization</label>
+                      <select
+                        className="profile-input-field"
+                        value={profileSpecialization}
+                        onChange={(e) => setProfileSpecialization(e.target.value)}
+                      >
+                        {SPECIALIZATIONS.map(spec => (
+                          <option key={spec} value={spec}>{spec}</option>
+                        ))}
+                      </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Clinic Address</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        value={profileClinicAddress} 
-                        onChange={(e) => setProfileClinicAddress(e.target.value)} 
+                    <div className="profile-unified-field">
+                      <label className="profile-unified-label">Clinic Contact Phone</label>
+                      <input
+                        type="tel"
+                        className="profile-input-field"
+                        value={profilePhone}
+                        onChange={(e) => setProfilePhone(e.target.value)}
                       />
                     </div>
 
-                    <div className="form-group" style={{ position: 'relative' }}>
-                      <label className="form-label">Serving City</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="Search city..." 
+                    <div className="profile-unified-field">
+                      <label className="profile-unified-label">Clinic Name</label>
+                      <input
+                        type="text"
+                        className="profile-input-field"
+                        value={profileClinicName}
+                        onChange={(e) => setProfileClinicName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="profile-unified-field">
+                      <label className="profile-unified-label">Professional Experience (years)</label>
+                      <input
+                        type="number"
+                        className="profile-input-field"
+                        min="0"
+                        value={profileExperience}
+                        onChange={(e) => setProfileExperience(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="profile-unified-field full-span">
+                      <label className="profile-unified-label">Clinic Address</label>
+                      <input
+                        type="text"
+                        className="profile-input-field"
+                        value={profileClinicAddress}
+                        onChange={(e) => setProfileClinicAddress(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="profile-unified-field full-span" style={{ position: 'relative' }}>
+                      <label className="profile-unified-label">Serving City</label>
+                      <input
+                        type="text"
+                        className="profile-input-field"
+                        placeholder="Search city..."
                         value={profileCitySearch}
                         onChange={(e) => {
                           setProfileCitySearch(e.target.value);
@@ -580,8 +643,8 @@ export default function DoctorDashboard() {
                       {showCityDropdown && filteredCities.length > 0 && (
                         <div className="city-dropdown-list open" style={{ position: 'absolute', width: '100%', zIndex: 10 }}>
                           {filteredCities.map((item) => (
-                            <div 
-                              key={item} 
+                            <div
+                              key={item}
                               className="city-option"
                               onClick={() => {
                                 setProfileCitySearch(item.charAt(0).toUpperCase() + item.slice(1));
@@ -600,12 +663,17 @@ export default function DoctorDashboard() {
                       </div>
                     </div>
 
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }}>
-                      Save Profile Changes
+                  </div>
+
+                  {/* ── Footer row ── */}
+                  <div className="profile-unified-footer">
+                    <button type="submit" className="btn btn-primary profile-submit-button">
+                      Save changes
                     </button>
-                  </form>
+                  </div>
+
                 </div>
-              </div>
+              </form>
             </section>
           )}
 

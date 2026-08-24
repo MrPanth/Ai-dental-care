@@ -72,7 +72,18 @@ exports.getMyAppointments = async (req, res) => {
     } else {
        appointments = await Appointment.find().sort({ date: -1 });
     }
-    res.json({ appointments });
+
+    // Batch-fetch current profilePhoto for all distinct doctors in one query
+    const doctorIds = [...new Set(appointments.map(a => a.doctorId?.toString()).filter(Boolean))];
+    const doctorDocs = await Doctor.find({ _id: { $in: doctorIds } }).select('_id profilePhoto');
+    const photoMap = Object.fromEntries(doctorDocs.map(d => [d._id.toString(), d.profilePhoto || null]));
+
+    const appointmentsWithPhotos = appointments.map(appt => ({
+      ...appt.toObject(),
+      doctorProfilePhoto: photoMap[appt.doctorId?.toString()] ?? null
+    }));
+
+    res.json({ appointments: appointmentsWithPhotos });
   } catch (error) {
     res.status(500).json({ message: 'Server error retrieving appointments' });
   }
@@ -244,3 +255,51 @@ exports.completeAppointment = async (req, res) => {
     res.status(500).json({ message: 'Server error during completion' });
   }
 };
+
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { date, time } = req.body;
+    if (!date || !time) {
+      return res.status(400).json({ message: 'Date and time are required' });
+    }
+
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    const patientProfile = await Patient.findOne({ userId: req.user._id });
+    if (!patientProfile || appointment.patientId.toString() !== patientProfile._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to reschedule this appointment' });
+    }
+
+    const existing = await Appointment.findOne({
+      doctorId: appointment.doctorId,
+      date: new Date(date),
+      time,
+      _id: { $ne: appointment._id }
+    });
+    if (existing) {
+      return res.status(400).json({ message: 'This slot is already booked' });
+    }
+
+    appointment.date = new Date(date);
+    appointment.time = time;
+    appointment.status = 'pending';
+    await appointment.save();
+
+    await notifyAppointmentUpdate(
+      req,
+      appointment,
+      `Appointment with ${appointment.patientName} has been rescheduled to ${new Date(date).toLocaleDateString()} at ${time}.`
+    );
+
+    res.json({
+      success: true,
+      message: 'Appointment rescheduled successfully',
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Reschedule appointment error:', error);
+    res.status(500).json({ message: 'Server error during rescheduling' });
+  }
+};
+

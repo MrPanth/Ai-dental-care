@@ -63,7 +63,9 @@ async function analyzeImage(imagePath) {
       }
     ];
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite"
+    });
 
     let attempts = 0;
     const maxAttempts = 3;

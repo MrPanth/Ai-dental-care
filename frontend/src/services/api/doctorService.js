@@ -27,7 +27,10 @@ export const doctorService = {
   },
 
   updateProfile: async (profileData) => {
-    const response = await apiClient.put('/api/doctor/profile', profileData);
+    const isFormData = profileData instanceof FormData;
+    const response = await apiClient.put('/api/doctor/profile', profileData, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
     return response.data;
   }
 };

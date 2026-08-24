@@ -7,7 +7,7 @@ export default function Login() {
   const navigate = useNavigate();
   const loginStore = useAuthStore((state) => state.login);
   
-  const [activeRole, setActiveRole] = useState('admin');
+  const [activeRole, setActiveRole] = useState('patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -104,13 +104,6 @@ export default function Login() {
         <div className="auth-tabs">
           <button 
             type="button" 
-            className={`auth-tab ${activeRole === 'admin' ? 'active' : ''}`} 
-            onClick={() => { setActiveRole('admin'); setFormErrorMsg(''); }}
-          >
-            Admin
-          </button>
-          <button 
-            type="button" 
             className={`auth-tab ${activeRole === 'doctor' ? 'active' : ''}`} 
             onClick={() => { setActiveRole('doctor'); setFormErrorMsg(''); }}
           >
@@ -179,7 +172,7 @@ export default function Login() {
           {formErrorMsg && (
             <div className="alert alert-danger" style={{ display: 'flex' }}>
               <span className="alert-icon">&#9888;</span>
-              <span dangerouslySetInnerHTML={{ __html: formErrorMsg }}></span>
+              <span>{formErrorMsg}</span>
             </div>
           )}
 

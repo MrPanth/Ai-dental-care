@@ -25,4 +25,23 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Response interceptor: auto-logout on 401 (stale/invalid token)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                             error.config?.url?.includes('/auth/register');
+      if (!isAuthEndpoint) {
+        // Token is stale or user no longer exists — clear and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
+
