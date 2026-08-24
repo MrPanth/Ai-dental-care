@@ -534,7 +534,7 @@ export default function PatientDashboard() {
   };
 
   return (
-    <div className="admin-dashboard-wrapper theme-teal">
+    <div className={`admin-dashboard-wrapper theme-teal ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {/* Toast notifications */}
       <div className="toast-container">
         {toasts.map((t) => (
@@ -545,7 +545,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* Sidebar */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div>
           <div className="admin-sidebar-logo">
             <div className="admin-logo-icon" style={{ background: '#ffffff', padding: '4px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', flexShrink: 0 }}>
@@ -561,7 +561,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveSection('overview')}
+              onClick={() => { setActiveSection('overview'); setSidebarOpen(false); }}
             >
               <span>Dashboard</span>
             </button>
@@ -569,7 +569,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'scan' ? 'active' : ''}`}
-              onClick={() => setActiveSection('scan')}
+              onClick={() => { setActiveSection('scan'); setSidebarOpen(false); }}
             >
               <span>Upload Scan</span>
             </button>
@@ -577,7 +577,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'reports' ? 'active' : ''}`}
-              onClick={() => setActiveSection('reports')}
+              onClick={() => { setActiveSection('reports'); setSidebarOpen(false); }}
             >
               <span>My Reports</span>
             </button>
@@ -585,7 +585,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'appointments' ? 'active' : ''}`}
-              onClick={() => setActiveSection('appointments')}
+              onClick={() => { setActiveSection('appointments'); setSidebarOpen(false); }}
             >
               <span>Appointments</span>
             </button>
@@ -593,7 +593,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'doctors' ? 'active' : ''}`}
-              onClick={() => setActiveSection('doctors')}
+              onClick={() => { setActiveSection('doctors'); setSidebarOpen(false); }}
             >
               <span>Find Doctors</span>
             </button>
@@ -601,7 +601,7 @@ export default function PatientDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveSection('profile')}
+              onClick={() => { setActiveSection('profile'); setSidebarOpen(false); }}
             >
               <span>My Profile</span>
             </button>
@@ -616,11 +616,19 @@ export default function PatientDashboard() {
         </div>
       </aside>
 
+      {/* Sidebar Overlay */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
+
       {/* Main Container */}
       <main className="admin-main">
         {/* Header Topbar */}
         <header className="admin-topbar">
-          <h1 className="admin-topbar-title">{getSectionTitle()}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button type="button" className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Toggle Menu">
+              <Menu size={20} />
+            </button>
+            <h1 className="admin-topbar-title">{getSectionTitle()}</h1>
+          </div>
           <div className="admin-header-profile" onClick={() => setActiveSection('profile')} title="View profile settings">
             <div className="admin-user-avatar">
               {uploadedAvatar ? (

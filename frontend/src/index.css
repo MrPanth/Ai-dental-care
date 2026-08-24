@@ -3374,3 +3374,275 @@ tbody tr:hover { background: #fafbfc; }
 .landing p {
   color: #6b6b63;
 }
+
+/* --- HAMBURGER BUTTONS & SIDEBAR MOBILES --- */
+.hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.theme-teal .hamburger {
+  color: #145850;
+}
+.hamburger:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN & MEDIA QUERIES
+   ══════════════════════════════════════════════════════════════ */
+
+/* --- TABLETS & SMALLER SCREENS (max-width: 1024px) --- */
+@media screen and (max-width: 1024px) {
+  /* Landing page Hero */
+  .hero {
+    grid-template-columns: 1fr !important;
+    gap: 40px;
+    padding: 40px 24px !important;
+    text-align: center;
+  }
+  .hero-text {
+    align-items: center;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 40px !important;
+    line-height: 1.2;
+  }
+  .hero p {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
+  .hero-visual-container {
+    margin-top: 20px;
+  }
+  .float-1, .float-2, .float-3 {
+    display: none !important; /* Hide floating cards on mobile to avoid clutter */
+  }
+
+  /* Landing layouts */
+  .stats-section {
+    padding: 40px 24px !important;
+  }
+  .stats-container-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px;
+  }
+  .services-section-new,
+  .testimonials-section-new,
+  .steps-section-new {
+    padding: 50px 24px !important;
+  }
+  .services-grid-new {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px;
+  }
+  .testimonials-grid-new {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px;
+  }
+  
+  /* Dashboards Sidebar responsivness */
+  .sidebar,
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: -260px !important;
+    width: 260px !important;
+    z-index: 210 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .sidebar-open .sidebar,
+  .admin-sidebar.open {
+    transform: translateX(260px) !important;
+  }
+
+  .main-content,
+  .admin-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    height: 100vh;
+  }
+
+  .hamburger {
+    display: inline-flex !important;
+  }
+
+  .topbar,
+  .admin-topbar {
+    padding: 0 20px !important;
+  }
+}
+
+/* --- SMALL TABLETS & PHONES (max-width: 768px) --- */
+@media screen and (max-width: 768px) {
+  /* Landing Nav */
+  .landing-nav {
+    padding: 12px 20px !important;
+  }
+  .landing-nav-links {
+    display: none !important; /* Hide landing page nav links on mobile/tablet */
+  }
+
+  /* Timeline (How It Works) */
+  .timeline-line {
+    left: 20px !important;
+    transform: none !important;
+  }
+  .timeline-item {
+    width: 100% !important;
+    padding-left: 55px !important;
+    padding-right: 0 !important;
+  }
+  .timeline-left, .timeline-right {
+    left: 0 !important;
+  }
+  .timeline-left .timeline-badge,
+  .timeline-right .timeline-badge {
+    left: -4px !important;
+    right: auto !important;
+    top: 24px !important;
+  }
+  .timeline-content {
+    padding: 20px 24px !important;
+  }
+
+  /* Grid structures */
+  .stats-grid,
+  .admin-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  
+  .services-grid-new,
+  .testimonials-grid-new,
+  .landing-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .landing-footer {
+    padding: 40px 20px 20px !important;
+  }
+  .landing-footer-grid {
+    margin-bottom: 24px !important;
+  }
+
+  /* Form layouts */
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  
+  /* Details and Info Grids */
+  .doctor-info-grid,
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Table scrolling */
+  .table-wrapper,
+  .admin-table-wrapper {
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Modal responsiveness */
+  .modal {
+    max-height: 95vh !important;
+    width: calc(100% - 20px) !important;
+  }
+  .modal-overlay {
+    padding: 10px !important;
+  }
+  .modal-body {
+    padding: 16px !important;
+  }
+  .modal-body > div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .modal-footer {
+    padding: 12px 16px !important;
+  }
+
+  /* Filter items */
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .filter-bar .form-control,
+  .search-input-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* --- EXTRA MICRO SCREENS (max-width: 480px) --- */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 14px !important;
+  }
+  .hero h1 {
+    font-size: 30px !important;
+  }
+  .landing-logo-text {
+    font-size: 16px !important;
+  }
+  
+  /* Buttons adjustment */
+  .hero-actions .btn {
+    width: 100% !important;
+    justify-content: center;
+    padding: 12px 24px !important;
+  }
+
+  /* Auth Card spacing */
+  .auth-card {
+    padding: 24px 20px !important;
+  }
+  
+  /* Dashboard Content inner padding */
+  .page-content,
+  .admin-content {
+    padding: 16px !important;
+  }
+
+  /* Topbar profile details */
+  .admin-user-info {
+    display: none !important; /* Hide city/name text on very small screen to save space */
+  }
+
+  /* Card paddings */
+  .card-header,
+  .card-body {
+    padding: 16px !important;
+  }
+}

@@ -11,7 +11,8 @@ import {
   LogOut, 
   Activity,
   Check,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 
 const getImageUrl = (path) => {
@@ -28,6 +29,7 @@ const getImageUrl = (path) => {
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
   const [activeSection, setActiveSection] = useState('overview'); // Default tab: Dashboard
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Data states
   const [stats, setStats] = useState(null);
@@ -164,9 +166,9 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="admin-dashboard-wrapper theme-teal">
+    <div className={`admin-dashboard-wrapper theme-teal ${sidebarOpen ? 'sidebar-open' : ''}`}>
       {/* Sidebar */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div>
           <div className="admin-sidebar-logo">
             <div className="admin-logo-icon" style={{ background: '#ffffff', padding: '4px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', flexShrink: 0 }}>
@@ -182,7 +184,7 @@ export default function AdminDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveSection('overview')}
+              onClick={() => { setActiveSection('overview'); setSidebarOpen(false); }}
             >
               <span>Dashboard</span>
             </button>
@@ -190,7 +192,7 @@ export default function AdminDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'pending' ? 'active' : ''}`}
-              onClick={() => setActiveSection('pending')}
+              onClick={() => { setActiveSection('pending'); setSidebarOpen(false); }}
             >
               <span>Pending Approvals</span>
               {pendingDoctors.length > 0 && (
@@ -203,7 +205,7 @@ export default function AdminDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'approved' ? 'active' : ''}`}
-              onClick={() => setActiveSection('approved')}
+              onClick={() => { setActiveSection('approved'); setSidebarOpen(false); }}
             >
               <span>Approved Doctors</span>
             </button>
@@ -211,7 +213,7 @@ export default function AdminDashboard() {
             <button 
               type="button" 
               className={`admin-nav-item ${activeSection === 'reports' ? 'active' : ''}`}
-              onClick={() => setActiveSection('reports')}
+              onClick={() => { setActiveSection('reports'); setSidebarOpen(false); }}
             >
               <span>All Reports</span>
             </button>
@@ -226,11 +228,19 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* Sidebar Overlay */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
+
       {/* Main Container */}
       <main className="admin-main">
         {/* Header Topbar */}
         <header className="admin-topbar">
-          <h1 className="admin-topbar-title">{getSectionTitle()}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button type="button" className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Toggle Menu">
+              <Menu size={20} />
+            </button>
+            <h1 className="admin-topbar-title">{getSectionTitle()}</h1>
+          </div>
           <div className="admin-header-profile" style={{ cursor: 'default' }}>
             <div className="admin-user-avatar">AD</div>
             <div className="admin-user-info">
