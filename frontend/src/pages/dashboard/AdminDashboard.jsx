@@ -14,6 +14,17 @@ import {
   X
 } from 'lucide-react';
 
+const getImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const baseUrl = backendUrl.replace(/\/api$/, '');
+  return `${baseUrl}${cleanPath}`;
+};
+
 export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
   const [activeSection, setActiveSection] = useState('overview'); // Default tab: Dashboard
@@ -88,7 +99,7 @@ export default function AdminDashboard() {
       clinicName: doc.doctorDetails?.clinicName || 'Clinic Center',
       registeredDate: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
       status: doc.isApproved !== false ? 'Active' : 'Inactive',
-      avatar: doc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doctor')}&background=0f172a&color=fff`
+      avatar: getImageUrl(doc.profilePhoto) || doc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doctor')}&background=0f172a&color=fff`
     }));
 
     return list.filter(doc => {

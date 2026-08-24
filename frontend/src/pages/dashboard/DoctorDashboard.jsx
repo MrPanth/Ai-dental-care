@@ -22,6 +22,17 @@ import {
   Camera
 } from 'lucide-react';
 
+const getImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const baseUrl = backendUrl.replace(/\/api$/, '');
+  return `${baseUrl}${cleanPath}`;
+};
+
 const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
 const RECOMMENDATIONS = [
   'Immediate treatment needed',
@@ -265,7 +276,7 @@ export default function DoctorDashboard() {
             <div className="admin-header-profile" onClick={() => setActiveSection('profile')} title="View profile settings">
               <div className="admin-user-avatar">
                 {(photoPreview || profilePhoto) ? (
-                  <img src={photoPreview || profilePhoto} alt={user?.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={photoPreview || getImageUrl(profilePhoto)} alt={user?.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
                   (user?.name ? user.name.slice(0, 2).toUpperCase() : 'DR')
                 )}
@@ -543,7 +554,7 @@ export default function DoctorDashboard() {
                     {/* Circular avatar */}
                     <div className="profile-unified-avatar">
                       {(photoPreview || profilePhoto) ? (
-                        <img src={photoPreview || profilePhoto} alt="Profile" />
+                        <img src={photoPreview || getImageUrl(profilePhoto)} alt="Profile" />
                       ) : (
                         user?.name ? user.name.slice(0, 2).toUpperCase() : 'DR'
                       )}
@@ -696,7 +707,7 @@ export default function DoctorDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
                   <img 
-                    src={selectedReport.imagePath} 
+                    src={getImageUrl(selectedReport.imagePath)} 
                     alt="Dental Scan" 
                     style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', height: '140px' }} 
                   />

@@ -29,6 +29,17 @@ import {
 
 const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
 
+const getImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const baseUrl = backendUrl.replace(/\/api$/, '');
+  return `${baseUrl}${cleanPath}`;
+};
+
 const DOCTOR_AVATARS = [
   'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=150', // Female doctor 1
   'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150', // Male doctor 1
@@ -1157,7 +1168,7 @@ export default function PatientDashboard() {
                         filteredBookedAppointments.map((appt) => {
                           const specialty = getDoctorSpecialty(appt.doctorName, appt.doctorId);
                           const visitType = getVisitType(specialty);
-                          const avatar = appt.doctorProfilePhoto || getDoctorAvatar(appt.doctorName, appt.doctorId);
+                          const avatar = getImageUrl(appt.doctorProfilePhoto) || getDoctorAvatar(appt.doctorName, appt.doctorId);
                           const formattedDate = new Date(appt.date || appt.appointmentDate).toLocaleDateString('en-US', {
                             month: 'short',
                             day: '2-digit',
@@ -1332,7 +1343,7 @@ export default function PatientDashboard() {
                   {filteredDoctors.map((doc) => {
                     const ratingData = getDoctorRating(doc.name, doc._id);
                     const specialty = doc.specialization || doc.doctorDetails?.specialization || 'General Dentistry';
-                    const avatar = doc.profilePhoto || getDoctorAvatar(doc.name, doc._id);
+                    const avatar = getImageUrl(doc.profilePhoto) || getDoctorAvatar(doc.name, doc._id);
                     const exp = doc.experience || 5;
 
                     return (
@@ -1557,7 +1568,7 @@ export default function PatientDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
                   <div>
                     <img 
-                      src={selectedReport.imagePath} 
+                      src={getImageUrl(selectedReport.imagePath)} 
                       alt="Dental Scan" 
                       style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', height: '160px' }} 
                     />
@@ -1631,7 +1642,7 @@ export default function PatientDashboard() {
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
                   <img 
-                    src={viewingAppointment.doctorProfilePhoto || getDoctorAvatar(viewingAppointment.doctorName, viewingAppointment.doctorId)} 
+                    src={getImageUrl(viewingAppointment.doctorProfilePhoto) || getDoctorAvatar(viewingAppointment.doctorName, viewingAppointment.doctorId)} 
                     alt={`Dr. ${viewingAppointment.doctorName}`} 
                     style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }}
                   />
@@ -1833,7 +1844,7 @@ export default function PatientDashboard() {
                   {bookingDoctor ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <img 
-                        src={bookingDoctor.profilePhoto || getDoctorAvatar(bookingDoctor.name, bookingDoctor._id)} 
+                        src={getImageUrl(bookingDoctor.profilePhoto) || getDoctorAvatar(bookingDoctor.name, bookingDoctor._id)} 
                         alt={`Dr. ${bookingDoctor.name}`} 
                         style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
                       />
