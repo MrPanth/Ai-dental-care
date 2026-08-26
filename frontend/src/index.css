@@ -1424,6 +1424,29 @@ tbody tr:hover { background: #fafbfc; }
 .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; font-size: 20px; }
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 45; }
 
+/* ── ADMIN SIDEBAR HAMBURGER + OVERLAY (mobile) ── */
+.admin-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #0f172a;
+  border-radius: 8px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.admin-hamburger:hover { background: #f1f5f9; }
+.admin-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 49;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
   .hero { grid-template-columns: 1fr; padding: 60px 28px; text-align: center; }
@@ -1459,6 +1482,71 @@ tbody tr:hover { background: #fafbfc; }
   .auth-card, .register-card { padding: 24px 18px; }
   .stats-grid { grid-template-columns: 1fr; }
 }
+
+/* ── ADMIN / PATIENT DASHBOARD – RESPONSIVE SIDEBAR ── */
+@media (max-width: 768px) {
+  /* Slide sidebar fully off-screen; position it as a fixed overlay drawer */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+  /* Slide in when .open is added */
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+  /* Show the dimmed backdrop when the drawer is open */
+  .admin-sidebar-overlay.show {
+    display: block;
+  }
+  /* Main content fills the full width (no left margin from sidebar) */
+  .admin-main {
+    margin-left: 0;
+    width: 100%;
+  }
+  /* Show hamburger button */
+  .admin-hamburger {
+    display: flex;
+  }
+  /* Tighten top bar padding on mobile */
+  .admin-topbar {
+    padding: 0 16px;
+    gap: 12px;
+  }
+  /* Tighten content area padding */
+  .admin-content {
+    padding: 16px;
+  }
+  /* Stack the stats grid to 2 columns (or 1 on very small) */
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  /* Stack search row vertically */
+  .admin-search-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  /* Keep sparklines from pushing cards too wide */
+  .admin-sparkline {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-topbar-title {
+    font-size: 17px;
+  }
+}
+
 
 /* ── MODERN 2D DASHBOARD ADDITIONS ── */
 .nav-icon-new {

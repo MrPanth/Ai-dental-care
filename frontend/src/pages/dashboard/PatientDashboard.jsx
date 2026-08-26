@@ -545,7 +545,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside className={`admin-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div>
           <div className="admin-sidebar-logo">
             <div className="admin-logo-icon" style={{ background: '#ffffff', padding: '4px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', flexShrink: 0 }}>
@@ -616,16 +616,24 @@ export default function PatientDashboard() {
         </div>
       </aside>
 
-      {/* Sidebar Overlay */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
+      {/* Sidebar overlay – closes drawer when tapped */}
+      <div
+        className={`admin-sidebar-overlay${sidebarOpen ? ' show' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* Main Container */}
       <main className="admin-main">
         {/* Header Topbar */}
         <header className="admin-topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button type="button" className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="Toggle Menu">
-              <Menu size={20} />
+            {/* Hamburger – visible only on mobile via CSS */}
+            <button
+              className="admin-hamburger"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu size={22} />
             </button>
             <h1 className="admin-topbar-title">{getSectionTitle()}</h1>
           </div>
