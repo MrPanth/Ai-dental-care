@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
 import { 
   Shield, 
@@ -16,11 +16,14 @@ import {
   Upload,
   Cpu,
   Calendar,
-  Check
+  Check,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function LandingPage() {
   const { user, logout } = useAuthStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getDashboardPath = () => {
     if (!user) return '/login';
@@ -28,6 +31,8 @@ export default function LandingPage() {
     if (user.role === 'doctor') return user.isApproved ? '/doctor-dashboard' : '/doctor-pending';
     return '/patient-dashboard';
   };
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   // Framer Motion animation variants
   const fadeInUp = {
@@ -47,6 +52,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing" id="home">
+
       {/* Sticky Navbar */}
       <nav className="landing-nav">
         <a href="#home" className="landing-logo">
@@ -73,7 +79,56 @@ export default function LandingPage() {
             </>
           )}
         </div>
+        {/* Mobile Hamburger Toggle */}
+        <button 
+          className="landing-mobile-toggle" 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle navigation menu"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </nav>
+
+      {/* Mobile Drawer Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div 
+              className="landing-mobile-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeMobileMenu}
+            />
+            <motion.div 
+              className="landing-mobile-menu"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <a href="#home" className="landing-mobile-link" onClick={closeMobileMenu}>Home</a>
+              <a href="#about" className="landing-mobile-link" onClick={closeMobileMenu}>About</a>
+              <a href="#services" className="landing-mobile-link" onClick={closeMobileMenu}>Services</a>
+              <a href="#how-it-works" className="landing-mobile-link" onClick={closeMobileMenu}>How It Works</a>
+              <a href="#testimonials" className="landing-mobile-link" onClick={closeMobileMenu}>Testimonials</a>
+              <div className="landing-mobile-actions">
+                {user ? (
+                  <>
+                    <Link to={getDashboardPath()} className="btn btn-primary btn-full" onClick={closeMobileMenu}>Dashboard</Link>
+                    <button onClick={() => { logout(); closeMobileMenu(); }} className="btn btn-ghost btn-full">Logout</button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" className="btn btn-ghost btn-full" onClick={closeMobileMenu}>Log In</Link>
+                    <Link to="/register" className="btn btn-primary btn-full" onClick={closeMobileMenu}>Get Started</Link>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="hero">

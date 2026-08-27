@@ -170,12 +170,13 @@ export default function Register() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate autoComplete="off">
           {/* General Fields */}
           <div className="form-group">
             <label className="form-label">Full Name <span>*</span></label>
             <input 
               type="text" 
+              autoComplete="off"
               className={`form-control ${errors.name ? 'error' : ''}`} 
               placeholder="John Doe" 
               value={name}
@@ -188,6 +189,7 @@ export default function Register() {
             <label className="form-label">Email Address <span>*</span></label>
             <input 
               type="email" 
+              autoComplete="off"
               className={`form-control ${errors.email ? 'error' : ''}`} 
               placeholder="john@example.com" 
               value={email}
@@ -201,6 +203,7 @@ export default function Register() {
               <label className="form-label">Password <span>*</span></label>
               <input 
                 type="password" 
+                autoComplete="new-password"
                 className={`form-control ${errors.password ? 'error' : ''}`} 
                 placeholder="Min 6 chars" 
                 value={password}
@@ -212,6 +215,7 @@ export default function Register() {
               <label className="form-label">Confirm Password <span>*</span></label>
               <input 
                 type="password" 
+                autoComplete="new-password"
                 className={`form-control ${errors.confirmPassword ? 'error' : ''}`} 
                 placeholder="Repeat password" 
                 value={confirmPassword}
@@ -400,8 +404,14 @@ export default function Register() {
           )}
 
           <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading} style={{ marginTop: '12px' }}>
-            <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
-            {loading && <span className="spinner" style={{ display: 'inline-block' }}></span>}
+            {loading ? (
+              <>
+                <span className="spinner-sm"></span>
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <span>Create Account</span>
+            )}
           </button>
         </form>
 

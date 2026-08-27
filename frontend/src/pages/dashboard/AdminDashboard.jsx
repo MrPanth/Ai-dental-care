@@ -276,9 +276,6 @@ export default function AdminDashboard() {
                     <div className="admin-stat-label">Approved Doctors</div>
                   </div>
                 </div>
-                <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                  <path d="M2 20 Q 20 15, 35 24 T 68 8" stroke="#3b82f6" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
               </div>
 
               {/* Pending Approvals Card */}
@@ -292,9 +289,6 @@ export default function AdminDashboard() {
                     <div className="admin-stat-label">Pending Approvals</div>
                   </div>
                 </div>
-                <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                  <path d="M2 22 Q 25 18, 45 25 T 68 12" stroke="#d97706" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
               </div>
 
               {/* Total Patients Card */}
@@ -308,9 +302,6 @@ export default function AdminDashboard() {
                     <div className="admin-stat-label">Total Patients</div>
                   </div>
                 </div>
-                <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                  <path d="M2 24 Q 30 24, 48 20 T 68 6" stroke="#16a34a" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
               </div>
 
               {/* Total Reports Card */}
@@ -324,9 +315,6 @@ export default function AdminDashboard() {
                     <div className="admin-stat-label">Total Reports</div>
                   </div>
                 </div>
-                <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                  <path d="M2 20 Q 25 24, 45 18 T 68 8" stroke="#0284c7" strokeWidth="2" fill="none" strokeLinecap="round" />
-                </svg>
               </div>
             </div>
           )}

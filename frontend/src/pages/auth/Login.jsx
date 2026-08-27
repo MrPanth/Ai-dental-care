@@ -118,11 +118,13 @@ export default function Login() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate autoComplete="off">
           <div className="form-group">
             <label className="form-label">Email Address <span>*</span></label>
             <input 
               type="email" 
+              name="user_email"
+              autoComplete="off"
               className={`form-control ${emailError ? 'error' : ''}`} 
               placeholder="you@example.com" 
               value={email}
@@ -136,6 +138,8 @@ export default function Login() {
             <div style={{ position: 'relative' }}>
               <input 
                 type={showPassword ? 'text' : 'password'} 
+                name="user_password"
+                autoComplete="new-password"
                 className={`form-control ${passwordError ? 'error' : ''}`} 
                 placeholder="Your password" 
                 style={{ paddingRight: '42px' }}
@@ -177,8 +181,14 @@ export default function Login() {
           )}
 
           <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
-            <span>{loading ? 'Signing In...' : 'Sign In'}</span>
-            {loading && <span className="spinner" style={{ display: 'inline-block' }}></span>}
+            {loading ? (
+              <>
+                <span className="spinner-sm"></span>
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
           </button>
         </form>
 

@@ -28,16 +28,19 @@ import {
 } from 'lucide-react';
 
 const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
+const DENTAL_FALLBACK_SCAN = 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=400';
 
 const getImageUrl = (path) => {
   if (!path) return '';
+  if (typeof path !== 'string') return '';
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
   }
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = path.replace(/\\/g, '/');
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const baseUrl = backendUrl.replace(/\/api$/, '');
-  return `${baseUrl}${cleanPath}`;
+  const baseUrl = backendUrl.replace(/\/api\/?$/, '');
+  return `${baseUrl}${normalizedPath}`;
 };
 
 const DOCTOR_AVATARS = [
@@ -111,7 +114,7 @@ export default function PatientDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [patientProfile, setPatientProfile] = useState(null);
-  const [stats, setStats] = useState({ scans: 0, issues: 0, reviews: 0 });
+  const [stats, setStats] = useState({ scans: 0 });
   const [loading, setLoading] = useState(false);
   
   // Modals
@@ -144,7 +147,8 @@ export default function PatientDashboard() {
   // Scan Upload states
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState('');
-  const [uploadPhase, setUploadPhase] = useState('idle'); // idle, loading, complete
+  const [uploadPhase, setUploadPhase] = useState('idle'); // idle, loading, complete, failed
+  const [uploadError, setUploadError] = useState(null);
   const [analysisStep, setAnalysisStep] = useState(1);
   const [aiResult, setAiResult] = useState(null);
   
@@ -195,13 +199,7 @@ export default function PatientDashboard() {
 
       // Calculate stats
       const totalScans = userReports.length;
-      let issuesCount = 0;
-      let reviewsCount = 0;
-      userReports.forEach((r) => {
-        if (r.aiFindings?.issueDetected) issuesCount++;
-        if (r.doctorFeedback?.reviewed) reviewsCount++;
-      });
-      setStats({ scans: totalScans, issues: issuesCount, reviews: reviewsCount });
+      setStats({ scans: totalScans });
 
     } catch (err) {
       console.error('Error fetching patient dashboard data:', err);
@@ -248,8 +246,16 @@ export default function PatientDashboard() {
         data.reportId === pendingReportIdRef.current
       ) {
         clearInterval(stepIntervalRef.current);
+        try {
+          const reportData = await patientService.getReportDetails(data.reportId);
+          const errMsg = reportData.report?.errorMessage || reportData.report?.aiFindings?.description || data.message || 'AI analysis failed';
+          setUploadError(errMsg);
+          setUploadPhase('failed');
+        } catch (err) {
+          setUploadError(data.message || 'AI analysis failed. Please try again with a clear dental image.');
+          setUploadPhase('failed');
+        }
         addToast('AI analysis failed. Please try again with a clear dental image.', 'error');
-        setUploadPhase('idle');
         pendingReportIdRef.current = null;
       }
     };
@@ -344,8 +350,10 @@ export default function PatientDashboard() {
               setUploadPhase('complete');
               addToast('AI Analysis finished! Report generated.', 'success');
             } else if (report.status === 'failed') {
-              addToast(report.errorMessage || 'AI analysis failed. Please try again.', 'error');
-              setUploadPhase('idle');
+              const errMsg = report.errorMessage || report.aiFindings?.description || 'AI analysis failed. Please try again.';
+              setUploadError(errMsg);
+              setUploadPhase('failed');
+              addToast(errMsg, 'error');
             }
             pendingReportIdRef.current = null;
             loadData();
@@ -360,8 +368,10 @@ export default function PatientDashboard() {
     } catch (err) {
       clearInterval(stepIntervalRef.current);
       console.error(err);
-      addToast(err.response?.data?.message || 'Scan processing failed. Please try again.', 'error');
-      setUploadPhase('idle');
+      const errMsg = err.response?.data?.message || 'Scan processing failed. Please try again.';
+      setUploadError(errMsg);
+      setUploadPhase('failed');
+      addToast(errMsg, 'error');
     }
   };
 
@@ -369,6 +379,7 @@ export default function PatientDashboard() {
     setUploadFile(null);
     setUploadPreview('');
     setUploadPhase('idle');
+    setUploadError(null);
     setAnalysisStep(1);
     setAiResult(null);
   };
@@ -676,41 +687,34 @@ export default function PatientDashboard() {
                       <div className="admin-stat-label">Total Scans</div>
                     </div>
                   </div>
-                  <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                    <path d="M2 20 Q 20 15, 35 24 T 68 8" stroke="#3b82f6" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
                 </div>
 
-                {/* Issues Detected Card */}
-                <div className="admin-stat-card">
-                  <div className="admin-stat-left">
-                    <div className="admin-stat-icon-box gold">
-                      <AlertTriangle size={20} />
-                    </div>
-                    <div>
-                      <div className="admin-stat-number">{stats.issues}</div>
-                      <div className="admin-stat-label">Issues Detected</div>
-                    </div>
-                  </div>
-                  <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                    <path d="M2 22 Q 25 18, 45 25 T 68 12" stroke="#d97706" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
-                </div>
-
-                {/* Doctor Reviews Card */}
+                {/* Doctors Available Card */}
                 <div className="admin-stat-card">
                   <div className="admin-stat-left">
                     <div className="admin-stat-icon-box green">
                       <Stethoscope size={20} />
                     </div>
                     <div>
-                      <div className="admin-stat-number">{stats.reviews}</div>
-                      <div className="admin-stat-label">Doctor Reviews</div>
+                      <div className="admin-stat-number">{doctors ? doctors.length : 0}</div>
+                      <div className="admin-stat-label">Doctors available</div>
                     </div>
                   </div>
-                  <svg className="admin-sparkline" viewBox="0 0 70 28" fill="none">
-                    <path d="M2 24 Q 30 24, 48 20 T 68 6" stroke="#16a34a" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
+                </div>
+
+                {/* Appointments Booked Card */}
+                <div className="admin-stat-card">
+                  <div className="admin-stat-left">
+                    <div className="admin-stat-icon-box gold">
+                      <Calendar size={20} />
+                    </div>
+                    <div>
+                      <div className="admin-stat-number">
+                        {appointments ? appointments.filter(a => a.status === 'pending' || a.status === 'confirmed').length : 0}
+                      </div>
+                      <div className="admin-stat-label">Appointments booked</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -775,193 +779,392 @@ export default function PatientDashboard() {
 
           {/* SECTION: Upload Scan */}
           {activeSection === 'scan' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'stretch', minHeight: 'calc(100vh - 160px)' }}>
-              {/* Left Card: Upload Zone */}
-              <div className="admin-table-card" style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '2px' }}>Upload Zone</h2>
-                  <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>Upload Your Scan</p>
-
-                  <div 
-                    className="upload-zone" 
-                    onClick={() => document.getElementById('scanFileInput').click()} 
-                    style={{ 
-                      margin: '0 0 24px 0', 
-                      background: '#eff6ff', 
-                      border: '2px dashed #93c5fd', 
-                      borderRadius: '20px', 
-                      padding: '40px 24px',
-                      minHeight: '320px',
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
-                      <UploadCloud size={64} style={{ color: '#3b82f6' }} />
-                    </div>
-                    {uploadFile ? (
-                      <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '6px' }}>{uploadFile.name}</h3>
-                        <p style={{ fontSize: '14px', color: '#64748b' }}>File selected &mdash; ready for AI analysis</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>
-                          Drag &amp; Drop teeth photo<br />or scan here
-                        </h3>
-                        <p style={{ fontSize: '14px', color: '#64748b' }}>or browse files</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <input type="file" id="scanFileInput" accept=".jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFileChange} />
+            <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+              <div className="admin-table-card" style={{ padding: '32px 28px', background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+                {/* Header */}
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>
+                    Upload Dental Scan
+                  </h2>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                    Upload a clear photo of your teeth for real-time AI diagnostic analysis
+                  </p>
                 </div>
 
-                <div>
-                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <span style={{ 
-                      background: '#f1f5f9', 
-                      color: '#475569', 
-                      fontSize: '12px', 
-                      fontWeight: '500', 
-                      padding: '8px 18px', 
-                      borderRadius: '20px',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      Supported formats: JPG, PNG | Up to 5MB
-                    </span>
-                  </div>
+                {/* Drop Zone (STATE 1: when no file selected) */}
+                {!uploadFile && uploadPhase === 'idle' && (
+                  <div>
+                    <div 
+                      className="upload-zone" 
+                      onClick={() => document.getElementById('scanFileInput').click()} 
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      style={{ 
+                        margin: '0 0 16px 0', 
+                        background: '#eff6ff', 
+                        border: '2px dashed #93c5fd', 
+                        borderRadius: '16px', 
+                        padding: '32px 20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ background: '#dbeafe', padding: '14px', borderRadius: '50%', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UploadCloud size={36} style={{ color: '#2563eb' }} />
+                      </div>
+                      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '6px' }}>
+                        Drag &amp; drop a teeth photo
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                        or <span style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'underline' }}>browse gallery</span> &middot; JPG, PNG up to 5MB
+                      </p>
+                    </div>
 
-                  {uploadFile ? (
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <button type="button" className="btn btn-ghost btn-full" onClick={resetScan}>Change Image</button>
-                      <button type="button" className="btn btn-primary btn-full" onClick={handleAnalyze} style={{ padding: '14px', fontSize: '15px' }}>
-                        {uploadPhase === 'loading' ? 'Analyzing...' : 'Analyze with AI'}
+                    {/* Mobile Camera Option Button */}
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline btn-full"
+                        onClick={() => document.getElementById('scanCameraInput').click()}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px' }}
+                      >
+                        <Camera size={18} />
+                        <span>Take Photo with Mobile Camera</span>
                       </button>
                     </div>
-                  ) : (
-                    <button 
-                      type="button" 
-                      className="btn btn-primary btn-full" 
-                      onClick={() => document.getElementById('scanFileInput').click()}
-                      style={{ padding: '14px', fontSize: '15px', borderRadius: '12px' }}
-                    >
-                      Analyze with AI
-                    </button>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )}
 
-              {/* Right Card: AI Scan Guidelines & Real-Time Processing */}
-              <div className="admin-table-card" style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                <div>
-                  <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '24px' }}>
-                    AI Scan Guidelines &amp; Real-Time Processing
-                  </h2>
+                <input type="file" id="scanFileInput" accept="image/*,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFileChange} />
+                <input type="file" id="scanCameraInput" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
 
-                  {/* Visual Tips */}
-                  <div style={{ marginBottom: '28px' }}>
-                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px' }}>Visual Tips</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>1. Good Lighting</div>
-                        <img src="/tip-lighting.png" alt="Good Lighting" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'block' }} />
+                {/* File Preview Row (STATE 2, 3, 4) */}
+                {uploadFile && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '12px 16px', 
+                    background: '#f8fafc', 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '14px', 
+                    marginBottom: '20px' 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      {uploadPreview ? (
+                        <img src={uploadPreview} alt="Scan preview" style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #cbd5e1', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+                          <Camera size={22} />
+                        </div>
+                      )}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {uploadFile.name}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                          {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </div>
                       </div>
+                    </div>
 
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>2. Close-up Focus</div>
-                        <img src="/tip-focus.png" alt="Close-up Focus" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'block' }} />
+                    {uploadPhase === 'complete' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontWeight: '700', fontSize: '13px', background: '#dcfce7', padding: '6px 14px', borderRadius: '20px' }}>
+                        <Check size={16} strokeWidth={2.5} />
+                        <span>Done</span>
                       </div>
+                    ) : uploadPhase === 'loading' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: '600', fontSize: '12px' }}>
+                        <div className="spinner-sm"></div>
+                      </div>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={resetScan}
+                        aria-label="Remove selected file"
+                        style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', transition: 'background 0.15s' }}
+                        title="Remove file"
+                      >
+                        <X size={18} />
+                      </button>
+                    )}
+                  </div>
+                )}
 
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>3. Dry Teeth</div>
-                        <img src="/tip-dry.png" alt="Dry Teeth" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'block' }} />
-                      </div>
+                {/* STATE 1 & 2: Analyze Button */}
+                {uploadPhase === 'idle' && (
+                  <button 
+                    type="button" 
+                    className="btn btn-primary btn-full" 
+                    disabled={!uploadFile}
+                    onClick={handleAnalyze}
+                    style={{ 
+                      padding: '14px', 
+                      fontSize: '15px', 
+                      fontWeight: '700', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      opacity: !uploadFile ? 0.5 : 1,
+                      cursor: !uploadFile ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Analyze with AI
+                  </button>
+                )}
 
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>4. Angle</div>
-                        <img src="/tip-angle.png" alt="Angle" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'block' }} />
-                      </div>
+                {/* STATE 3: Analyzing In Progress */}
+                {uploadPhase === 'loading' && (
+                  <div style={{ marginBottom: '24px', padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                    {/* 4-segment progress bar */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                      {[1, 2, 3, 4].map((stepNum) => {
+                        let bg = '#e2e8f0';
+                        if (analysisStep > stepNum) bg = '#16a34a';
+                        else if (analysisStep === stepNum) bg = '#2563eb';
+                        return (
+                          <div 
+                            key={stepNum} 
+                            style={{ 
+                              height: '8px', 
+                              borderRadius: '4px', 
+                              background: bg,
+                              transition: 'background 0.3s ease'
+                            }} 
+                          />
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                      <span style={{ fontWeight: '600', color: '#0f172a' }}>
+                        {analysisStep === 1 && 'Uploading file...'}
+                        {analysisStep === 2 && 'Verifying image quality...'}
+                        {analysisStep === 3 && 'AI analyzing scan...'}
+                        {analysisStep >= 4 && 'Generating results...'}
+                      </span>
+                      <span style={{ color: '#64748b', fontWeight: '500' }}>
+                        Step {Math.min(analysisStep, 4)} of 4
+                      </span>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* AI Analysis Progress */}
-                <div>
-                  <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginBottom: '2px' }}>AI Analysis Progress</h3>
-                  <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '14px' }}>Real-Time processing indicator</p>
+                {/* STATE 4: Analysis Complete */}
+                {uploadPhase === 'complete' && (() => {
+                  const aiFindings = aiResult?.aiFindings || aiResult || {};
+                  const issueDetected = aiFindings.issueDetected;
+                  const severity = (aiFindings.severity || 'mild').toLowerCase();
+                  const conditions = aiFindings.conditions || [];
+                  const description = aiFindings.description || (issueDetected ? 'AI detected potential dental issues requiring attention.' : 'No significant dental issues detected in this scan.');
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Step 1: Uploading file */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span style={{ color: '#334155', fontWeight: '500' }}>1. Uploading file</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: (uploadPhase === 'loading' || uploadPhase === 'complete') ? '#16a34a' : '#64748b', fontWeight: '600', fontSize: '12px' }}>
-                        <span>{(uploadPhase === 'loading' || uploadPhase === 'complete') ? 'Completed' : 'Pending'}</span>
-                        {(uploadPhase === 'loading' || uploadPhase === 'complete') ? (
-                          <Check size={16} strokeWidth={2.5} style={{ background: '#dcfce7', color: '#16a34a', borderRadius: '50%', padding: '2px' }} />
-                        ) : (
-                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#cbd5e1' }}></div>
-                        )}
+                  let severityBg = '#fef3c7';
+                  let severityColor = '#b45309';
+                  let severityLabel = `${severity.charAt(0).toUpperCase() + severity.slice(1)} severity`;
+
+                  if (!issueDetected || severity === 'none' || severity === 'low') {
+                    severityBg = '#dcfce7';
+                    severityColor = '#15803d';
+                    severityLabel = 'Low / Mild severity';
+                  } else if (severity === 'moderate') {
+                    severityBg = '#ffedd5';
+                    severityColor = '#c2410c';
+                    severityLabel = 'Moderate severity';
+                  } else if (severity === 'high' || severity === 'severe') {
+                    severityBg = '#fee2e2';
+                    severityColor = '#b91c1c';
+                    severityLabel = 'High severity';
+                  }
+
+                  return (
+                    <div style={{ marginBottom: '24px', padding: '24px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                      {/* Completed 4-segment progress bar */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                        {[1, 2, 3, 4].map((num) => (
+                          <div key={num} style={{ height: '8px', borderRadius: '4px', background: '#16a34a' }} />
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '20px' }}>
+                        <span style={{ fontWeight: '700', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check size={16} strokeWidth={2.5} style={{ background: '#dcfce7', borderRadius: '50%', padding: '2px' }} /> Analysis complete
+                        </span>
+                        <span style={{ color: '#64748b', fontWeight: '500' }}>4 of 4 completed</span>
+                      </div>
+
+                      {/* Findings Summary Card */}
+                      <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '14px', padding: '20px', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Findings Summary</h4>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            textTransform: 'capitalize',
+                            background: severityBg,
+                            color: severityColor
+                          }}>
+                            {severityLabel}
+                          </span>
+                        </div>
+
+                        {/* Conditions chips */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                          {conditions.length > 0 ? (
+                            conditions.map((c, i) => (
+                              <span key={i} style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: '600' }}>
+                                {c}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: '600' }}>
+                              No issues detected
+                            </span>
+                          )}
+                        </div>
+
+                        <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', margin: 0 }}>
+                          {description}
+                        </p>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <button 
+                            type="button" 
+                            className="btn btn-primary" 
+                            onClick={() => setSelectedReport(aiResult)}
+                            style={{ padding: '12px', fontSize: '14px', fontWeight: '700', borderRadius: '10px', width: '100%' }}
+                          >
+                            View full report
+                          </button>
+                          <button 
+                            type="button" 
+                            className="btn btn-outline" 
+                            onClick={() => setActiveSection('doctors')}
+                            style={{ padding: '12px', fontSize: '14px', fontWeight: '700', borderRadius: '10px', border: '1.5px solid #cbd5e1', color: '#334155', background: '#ffffff', width: '100%' }}
+                          >
+                            Book a doctor
+                          </button>
+                        </div>
+                        <button 
+                          type="button" 
+                          className="btn btn-outline" 
+                          onClick={resetScan}
+                          style={{ padding: '12px', fontSize: '14px', fontWeight: '700', borderRadius: '10px', border: '1.5px solid #cbd5e1', color: '#334155', background: '#ffffff', width: '100%' }}
+                        >
+                          Upload another scan
+                        </button>
                       </div>
                     </div>
+                  );
+                })()}
 
-                    {/* Step 2: Verifying image quality */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span style={{ color: '#334155', fontWeight: '500' }}>2. Verifying image quality</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: (analysisStep > 1 || uploadPhase === 'complete') ? '#16a34a' : (uploadPhase === 'loading' && analysisStep === 1) ? '#2563eb' : '#64748b', fontWeight: '600', fontSize: '12px' }}>
-                        <span>
-                          {(analysisStep > 1 || uploadPhase === 'complete') ? 'Completed' : (uploadPhase === 'loading' && analysisStep === 1) ? 'Active processing...' : 'Pending'}
-                        </span>
-                        {(analysisStep > 1 || uploadPhase === 'complete') ? (
-                          <Check size={16} strokeWidth={2.5} style={{ background: '#dcfce7', color: '#16a34a', borderRadius: '50%', padding: '2px' }} />
-                        ) : (uploadPhase === 'loading' && analysisStep === 1) ? (
-                          <div className="spinner-sm" style={{ color: '#2563eb' }}></div>
-                        ) : (
-                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#cbd5e1' }}></div>
-                        )}
+                {/* STATE 5: Analysis Failed / Invalid Image */}
+                {uploadPhase === 'failed' && (() => {
+                  const isInvalidImageError = 
+                    !uploadError || 
+                    uploadError.toLowerCase().includes('not a valid dental scan') ||
+                    uploadError.toLowerCase().includes('not a dental photo') ||
+                    uploadError.toLowerCase().includes('only teeth images');
+
+                  const errorHeading = isInvalidImageError 
+                    ? "This isn't a dental photo" 
+                    : "AI Analysis Failed";
+
+                  const errorBody = isInvalidImageError 
+                    ? "Our AI could only detect a scan of teeth or a dental X-ray. Try a clear, well-lit photo of your teeth instead." 
+                    : uploadError;
+
+                  const handleSeeScanTips = () => {
+                    const detailsEl = document.getElementById('scanTipsDetails');
+                    if (detailsEl) {
+                      detailsEl.open = true;
+                      detailsEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  };
+
+                  return (
+                    <div style={{ marginBottom: '24px' }}>
+                      {/* Persistent Inline Error Banner */}
+                      <div style={{ 
+                        background: '#fef2f2', 
+                        border: '1px solid #fecaca', 
+                        borderRadius: '14px', 
+                        padding: '18px 20px', 
+                        marginBottom: '20px',
+                        display: 'flex',
+                        gap: '14px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <AlertCircle size={22} style={{ color: '#dc2626', flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#991b1b', margin: '0 0 4px 0' }}>
+                            {errorHeading}
+                          </h4>
+                          <p style={{ fontSize: '13px', color: '#7f1d1d', lineHeight: '1.5', margin: 0 }}>
+                            {errorBody}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-primary" 
+                          onClick={resetScan}
+                          style={{ padding: '12px', fontSize: '14px', fontWeight: '700', borderRadius: '10px', width: '100%' }}
+                        >
+                          Try another photo
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-outline" 
+                          onClick={handleSeeScanTips}
+                          style={{ padding: '12px', fontSize: '14px', fontWeight: '700', borderRadius: '10px', border: '1.5px solid #cbd5e1', color: '#334155', background: '#ffffff', width: '100%' }}
+                        >
+                          See scan tips
+                        </button>
                       </div>
                     </div>
+                  );
+                })()}
 
-                    {/* Step 3: AI analyzing scan */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span style={{ color: '#334155', fontWeight: '500' }}>3. AI analyzing scan</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: (analysisStep > 2 || uploadPhase === 'complete') ? '#16a34a' : (uploadPhase === 'loading' && analysisStep === 2) ? '#2563eb' : '#64748b', fontWeight: '600', fontSize: '12px' }}>
-                        <span>
-                          {(analysisStep > 2 || uploadPhase === 'complete') ? 'Completed' : (uploadPhase === 'loading' && analysisStep === 2) ? 'Active processing...' : 'Pending'}
-                        </span>
-                        {(analysisStep > 2 || uploadPhase === 'complete') ? (
-                          <Check size={16} strokeWidth={2.5} style={{ background: '#dcfce7', color: '#16a34a', borderRadius: '50%', padding: '2px' }} />
-                        ) : (uploadPhase === 'loading' && analysisStep === 2) ? (
-                          <div className="spinner-sm" style={{ color: '#2563eb' }}></div>
-                        ) : (
-                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#cbd5e1' }}></div>
-                        )}
-                      </div>
+                {/* Collapsible Scan Tips Section */}
+                <details id="scanTipsDetails" className="scan-tips-details" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginTop: '12px' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '700', color: '#334155', userSelect: 'none', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Scan tips &amp; photo guidelines</span>
+                    <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>Show guidelines &#9660;</span>
+                  </summary>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', paddingTop: '16px' }}>
+                    <div>
+                      <img src="/tip-lighting.png" alt="Good lighting" style={{ width: '100%', height: '95px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'block' }} />
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'center', marginTop: '6px' }}>Good lighting</div>
                     </div>
 
-                    {/* Step 4: Generating results */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span style={{ color: '#334155', fontWeight: '500' }}>4. Generating results</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: (uploadPhase === 'complete' || analysisStep >= 4) ? '#16a34a' : (uploadPhase === 'loading' && analysisStep === 3) ? '#2563eb' : '#64748b', fontWeight: '600', fontSize: '12px' }}>
-                        <span>
-                          {(uploadPhase === 'complete' || analysisStep >= 4) ? 'Completed' : (uploadPhase === 'loading' && analysisStep === 3) ? 'Active processing...' : 'Pending'}
-                        </span>
-                        {(uploadPhase === 'complete' || analysisStep >= 4) ? (
-                          <Check size={16} strokeWidth={2.5} style={{ background: '#dcfce7', color: '#16a34a', borderRadius: '50%', padding: '2px' }} />
-                        ) : (uploadPhase === 'loading' && analysisStep === 3) ? (
-                          <div className="spinner-sm" style={{ color: '#2563eb' }}></div>
-                        ) : (
-                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#cbd5e1' }}></div>
-                        )}
-                      </div>
+                    <div>
+                      <img src="/tip-focus.png" alt="Close-up focus" style={{ width: '100%', height: '95px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'block' }} />
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'center', marginTop: '6px' }}>Close-up focus</div>
+                    </div>
+
+                    <div>
+                      <img src="/tip-dry.png" alt="Dry teeth" style={{ width: '100%', height: '95px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'block' }} />
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'center', marginTop: '6px' }}>Dry teeth</div>
+                    </div>
+
+                    <div>
+                      <img src="/tip-angle.png" alt="Straight-on angle" style={{ width: '100%', height: '95px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'block' }} />
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'center', marginTop: '6px' }}>Straight-on angle</div>
                     </div>
                   </div>
-                </div>
+                </details>
               </div>
             </div>
           )}
@@ -1584,8 +1787,12 @@ export default function PatientDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
                   <div>
                     <img 
-                      src={getImageUrl(selectedReport.imagePath)} 
+                      src={getImageUrl(selectedReport?.imagePath || selectedReport?.image || selectedReport?.imageUrl || uploadPreview) || DENTAL_FALLBACK_SCAN} 
                       alt="Dental Scan" 
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DENTAL_FALLBACK_SCAN;
+                      }}
                       style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', height: '160px' }} 
                     />
                   </div>
@@ -1614,6 +1821,12 @@ export default function PatientDashboard() {
                       </span>
                     </p>
                     <p><strong>Model Confidence:</strong> {selectedReport.aiFindings?.confidence || '0'}%</p>
+                    <div style={{ marginTop: '4px' }}>
+                      <strong style={{ color: '#0f172a', display: 'block', marginBottom: '2px' }}>AI Description:</strong>
+                      <span style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', display: 'block' }}>
+                        {selectedReport.aiFindings?.description || selectedReport.description || 'No detailed description available for this scan.'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

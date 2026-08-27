@@ -51,6 +51,8 @@ img { max-width: 100%; }
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 8px;
   padding: 10px 20px;
   border: none;
@@ -1532,10 +1534,6 @@ tbody tr:hover { background: #fafbfc; }
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  /* Keep sparklines from pushing cards too wide */
-  .admin-sparkline {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
@@ -2170,11 +2168,6 @@ tbody tr:hover { background: #fafbfc; }
   color: #64748b;
   margin-top: 4px;
   font-weight: 500;
-}
-
-.admin-sparkline {
-  width: 70px;
-  height: 28px;
 }
 
 .admin-search-row {
@@ -3734,3 +3727,212 @@ tbody tr:hover { background: #fafbfc; }
     padding: 16px !important;
   }
 }
+
+/* --- SCAN TIPS DETAILS --- */
+details.scan-tips-details summary::-webkit-details-marker {
+  display: none;
+}
+details.scan-tips-details summary {
+  list-style: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION DRAWER & ACCESSIBILITY ENHANCEMENTS
+   ══════════════════════════════════════════════════════════════ */
+.landing-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.landing-mobile-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.landing-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 998;
+}
+.landing-mobile-menu {
+  position: fixed;
+  top: 70px;
+  left: 16px;
+  right: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.landing-mobile-link {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.landing-mobile-link:hover,
+.landing-mobile-link:active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.landing-mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .landing-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SPEED, TRANSITION & SUBMISSION ACCELERATION UTILITIES
+   ══════════════════════════════════════════════════════════════ */
+/* GPU Hardware Accelerated Smooth Transitions */
+.btn, .nav-item, .admin-nav-item, .card, .modal, .stat-card, .upload-zone {
+  will-change: transform, opacity;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease;
+}
+
+/* Active Touch Tap Feedback across all buttons */
+.btn:active, 
+button:active:not(:disabled), 
+.admin-nav-item:active, 
+.nav-item:active {
+  transform: scale(0.97) !important;
+}
+
+/* Form submission & button loading spinner */
+.spinner-sm {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+.spinner-sm-primary {
+  border: 2.5px solid rgba(37, 99, 235, 0.2);
+  border-top-color: var(--primary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Prevent auto-zoom layout shift on iOS / Android touch focus */
+@media (max-width: 768px) {
+  .form-control,
+  .city-search-input,
+  .admin-search-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* Touch-friendly interactive targets */
+  .btn,
+  .admin-nav-item,
+  .nav-item,
+  .city-option {
+    min-height: 44px;
+  }
+  
+  /* Mobile modal column stacking */
+  .modal-body > div[style*="gridTemplateColumns"],
+  .doctor-info-grid,
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   SKELETON LOADERS FOR DENTAL UI & TRANSITIONS
+   ══════════════════════════════════════════════════════════════ */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.skeleton-line {
+  height: 14px;
+  width: 100%;
+}
+
+.skeleton-line.short { width: 40%; }
+.skeleton-line.medium { width: 70%; }
+
+/* Smooth Tab & Section Transition */
+.tab-content-anim {
+  animation: tabFadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tabFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+

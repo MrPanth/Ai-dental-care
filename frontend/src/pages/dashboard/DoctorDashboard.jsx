@@ -22,15 +22,19 @@ import {
   Camera
 } from 'lucide-react';
 
+const DENTAL_FALLBACK_SCAN = 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=400';
+
 const getImageUrl = (path) => {
   if (!path) return '';
+  if (typeof path !== 'string') return '';
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
   }
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = path.replace(/\\/g, '/');
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const baseUrl = backendUrl.replace(/\/api$/, '');
-  return `${baseUrl}${cleanPath}`;
+  const baseUrl = backendUrl.replace(/\/api\/?$/, '');
+  return `${baseUrl}${normalizedPath}`;
 };
 
 const CITIES = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad', 'chennai', 'kolkata', 'surat', 'pune', 'jaipur'];
@@ -707,8 +711,12 @@ export default function DoctorDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
                   <img 
-                    src={getImageUrl(selectedReport.imagePath)} 
+                    src={getImageUrl(selectedReport?.imagePath || selectedReport?.image || selectedReport?.imageUrl) || DENTAL_FALLBACK_SCAN} 
                     alt="Dental Scan" 
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = DENTAL_FALLBACK_SCAN;
+                    }}
                     style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--border)', objectFit: 'cover', height: '140px' }} 
                   />
                 </div>
