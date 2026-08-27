@@ -78,8 +78,13 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static files (Uploads only)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static files (Uploads only - ensuring directory exists on cloud deployment)
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
