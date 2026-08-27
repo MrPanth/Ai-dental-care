@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
   if (!uri) {
-    console.error('❌ MONGODB_URI is not set. Please set the MONGODB_URI environment variable (either in your Render dashboard or a local .env file).');
+    console.error('❌ MONGODB_URI / MONGO_URI is not set. Please set the MONGODB_URI or MONGO_URI environment variable in your cloud dashboard (e.g. Railway / Render / Koyeb).');
     process.exit(1);
   }
 
