@@ -173,43 +173,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* About / Numbers Section */}
-      <section className="stats-section" id="about">
-        <div className="stats-section-inner">
-          <div className="stats-header">
-            <h2>AI Dental Care by the Numbers</h2>
-            <p>Providing trusted, fast, and accessible digital oral diagnostics across the platform.</p>
-          </div>
-          <motion.div 
-            className="stats-container-grid"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
-            <motion.div className="stat-card-new" variants={fadeInUp}>
-              <div className="stat-card-number">5,000+</div>
-              <div className="stat-card-label-new">Dental Analyses</div>
-              <div className="stat-card-desc">Completed automatically in seconds with high precision.</div>
-            </motion.div>
-            <motion.div className="stat-card-new" variants={fadeInUp}>
-              <div className="stat-card-number">120+</div>
-              <div className="stat-card-label-new">Verified Clinics</div>
-              <div className="stat-card-desc">Partnered across cities for in-clinic treatments.</div>
-            </motion.div>
-            <motion.div className="stat-card-new" variants={fadeInUp}>
-              <div className="stat-card-number">98%</div>
-              <div className="stat-card-label-new">AI Accuracy</div>
-              <div className="stat-card-desc">Validated diagnostic algorithms for common oral issues.</div>
-            </motion.div>
-            <motion.div className="stat-card-new" variants={fadeInUp}>
-              <div className="stat-card-number">24/7</div>
-              <div className="stat-card-label-new">AI Assistance</div>
-              <div className="stat-card-desc">Scan and get instant reports whenever, wherever.</div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
 
       {/* Services Section */}
       <section className="services-section-new" id="services">
@@ -335,90 +298,6 @@ export default function LandingPage() {
             </div>
           </motion.div>
         </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="testimonials-section-new" id="testimonials">
-        <div className="section-title">
-          <h2>Loved by Patients & Clinicians</h2>
-          <p>See how AI Dental Care is transforming diagnostic treatments.</p>
-        </div>
-        <motion.div 
-          className="testimonials-grid-new"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={staggerContainer}
-        >
-          <motion.div className="testimonial-card-new" variants={fadeInUp}>
-            <div>
-              <div className="testimonial-stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#eab308" color="#eab308" />)}
-              </div>
-              <p className="testimonial-content">
-                "The AI scan caught a cavity that I hadn't felt yet! Booking the appointment with a dentist in my city was extremely easy. The dentist already had my report."
-              </p>
-            </div>
-            <div className="testimonial-user">
-              <div className="testimonial-avatar blue">RK</div>
-              <div className="testimonial-info">
-                <h4>Rahul Kapoor</h4>
-                <div className="testimonial-profile-sub">
-                  <span>Patient &bull; Mumbai</span>
-                  <span className="verified-badge-new">
-                    <Check size={10} strokeWidth={3} /> Verified
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div className="testimonial-card-new" variants={fadeInUp}>
-            <div>
-              <div className="testimonial-stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#eab308" color="#eab308" />)}
-              </div>
-              <p className="testimonial-content">
-                "As a clinician, receiving AI Dental reports helps me prepare before the patient even walks in. It streamlines our clinic intake process and saves massive time."
-              </p>
-            </div>
-            <div className="testimonial-user">
-              <div className="testimonial-avatar green">AP</div>
-              <div className="testimonial-info">
-                <h4>Dr. Anjali Patil</h4>
-                <div className="testimonial-profile-sub">
-                  <span>Dentist &bull; Pune</span>
-                  <span className="verified-badge-new">
-                    <Check size={10} strokeWidth={3} /> Verified
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div className="testimonial-card-new" variants={fadeInUp}>
-            <div>
-              <div className="testimonial-stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#eab308" color="#eab308" />)}
-              </div>
-              <p className="testimonial-content">
-                "I was skeptical about AI, but the accuracy is outstanding. It gave me peace of mind about a gum issue and guided me straight to a local verified clinic."
-              </p>
-            </div>
-            <div className="testimonial-user">
-              <div className="testimonial-avatar purple">MS</div>
-              <div className="testimonial-info">
-                <h4>Meera Sharma</h4>
-                <div className="testimonial-profile-sub">
-                  <span>Patient &bull; Delhi</span>
-                  <span className="verified-badge-new">
-                    <Check size={10} strokeWidth={3} /> Verified
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
       </section>
 
 

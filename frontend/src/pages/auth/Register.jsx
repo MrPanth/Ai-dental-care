@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Eye, EyeOff } from 'lucide-react';
 
 const CITIES = [
   'mumbai', 'delhi', 'bangalore', 'hyderabad', 'ahmedabad',
@@ -40,6 +41,8 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [city, setCity] = useState('');
   const [filteredCities, setFilteredCities] = useState([]);
@@ -201,26 +204,72 @@ export default function Register() {
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="form-group">
               <label className="form-label">Password <span>*</span></label>
-              <input 
-                type="password" 
-                autoComplete="new-password"
-                className={`form-control ${errors.password ? 'error' : ''}`} 
-                placeholder="Min 6 chars" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  autoComplete="new-password"
+                  className={`form-control ${errors.password ? 'error' : ''}`} 
+                  placeholder="Min 6 chars" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               {errors.password && <div className="form-error show">{errors.password}</div>}
             </div>
             <div className="form-group">
               <label className="form-label">Confirm Password <span>*</span></label>
-              <input 
-                type="password" 
-                autoComplete="new-password"
-                className={`form-control ${errors.confirmPassword ? 'error' : ''}`} 
-                placeholder="Repeat password" 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  autoComplete="new-password"
+                  className={`form-control ${errors.confirmPassword ? 'error' : ''}`} 
+                  placeholder="Repeat password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               {errors.confirmPassword && <div className="form-error show">{errors.confirmPassword}</div>}
             </div>
           </div>

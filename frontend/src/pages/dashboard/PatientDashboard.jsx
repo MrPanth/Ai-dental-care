@@ -127,6 +127,8 @@ export default function PatientDashboard() {
   const [rescheduleTime, setRescheduleTime] = useState('10:00 AM');
   const [viewingAppointment, setViewingAppointment] = useState(null);
   const [showBookNewVisitModal, setShowBookNewVisitModal] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [modalSelectedDocId, setModalSelectedDocId] = useState('');
 
   // Profile Form
   const [profileAge, setProfileAge] = useState('');
@@ -275,6 +277,17 @@ export default function PatientDashboard() {
       setFilteredCities([]);
     }
   }, [profileCitySearch]);
+
+  useEffect(() => {
+    const docId = bookingDoctor?._id || modalSelectedDocId || (doctors[0]?._id);
+    if (showBookNewVisitModal && docId && bookingDate) {
+      appointmentService.getBookedSlots(docId, bookingDate)
+        .then(res => setBookedSlots(res.bookedSlots || []))
+        .catch(err => console.error('Failed to get booked slots', err));
+    } else {
+      setBookedSlots([]);
+    }
+  }, [bookingDoctor, modalSelectedDocId, bookingDate, showBookNewVisitModal, doctors]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -1371,7 +1384,6 @@ export default function PatientDashboard() {
                         <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doctor Name & Specialty</th>
                         <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appointment Date & Time</th>
                         <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clinic Location</th>
-                        <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visit Type</th>
                         <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                         <th style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', padding: '14px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
                       </tr>
@@ -1379,14 +1391,13 @@ export default function PatientDashboard() {
                     <tbody>
                       {filteredBookedAppointments.length === 0 ? (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: '48px', color: '#94a3b8', fontSize: '15px' }}>
+                          <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#94a3b8', fontSize: '15px' }}>
                             No scheduled appointments found matching search criteria.
                           </td>
                         </tr>
                       ) : (
                         filteredBookedAppointments.map((appt) => {
                           const specialty = getDoctorSpecialty(appt.doctorName, appt.doctorId);
-                          const visitType = getVisitType(specialty);
                           const avatar = getImageUrl(appt.doctorProfilePhoto) || getDoctorAvatar(appt.doctorName, appt.doctorId);
                           const formattedDate = new Date(appt.date || appt.appointmentDate).toLocaleDateString('en-US', {
                             month: 'short',
@@ -1421,9 +1432,6 @@ export default function PatientDashboard() {
                                 <div style={{ fontSize: '12px' }}>{appt.doctorClinicAddress || '123 Care St, City'}</div>
                               </td>
 
-                              <td style={{ padding: '16px', fontSize: '14px', color: '#334155', fontWeight: '500' }}>
-                                {visitType}
-                              </td>
 
                               <td style={{ padding: '16px' }}>
                                 <span 
@@ -1913,7 +1921,7 @@ export default function PatientDashboard() {
                   <div>
                     <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Visit Type</div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
-                      {getVisitType(getDoctorSpecialty(viewingAppointment.doctorName, viewingAppointment.doctorId))}
+                       {getVisitType(getDoctorSpecialty(viewingAppointment.doctorName, viewingAppointment.doctorId))}
                     </div>
                   </div>
                   <div>
@@ -2034,8 +2042,8 @@ export default function PatientDashboard() {
         {(bookingDoctor || showBookNewVisitModal) && (
           <div className="modal-overlay open" onClick={() => { setBookingDoctor(null); setShowBookNewVisitModal(false); }}>
             <div className="modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <span className="modal-title">Book New Dental Visit</span>
+              <div className="modal-header" style={{ borderBottom: 'none', paddingBottom: '0' }}>
+                <span className="modal-title" style={{ fontSize: '20px', color: '#102a20', fontWeight: '700' }}>Book new dental visit</span>
                 <button className="modal-close" onClick={() => { setBookingDoctor(null); setShowBookNewVisitModal(false); }}>
                   <X size={16} />
                 </button>
@@ -2044,7 +2052,7 @@ export default function PatientDashboard() {
                 e.preventDefault();
                 let doc = bookingDoctor;
                 if (!doc) {
-                  const docId = document.getElementById('modalSelectDoctor').value;
+                  const docId = modalSelectedDocId || (doctors[0] ? doctors[0]._id : null);
                   doc = doctors.find(d => d._id === docId);
                 }
                 if (!doc || !bookingDate || !bookingTime) {
@@ -2068,25 +2076,25 @@ export default function PatientDashboard() {
                   alert(err.response?.data?.message || 'Failed to book appointment');
                 }
               }}>
-                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
                   {bookingDoctor ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#f8f7f5', borderRadius: '12px', border: 'none' }}>
                       <img 
                         src={getImageUrl(bookingDoctor.profilePhoto) || getDoctorAvatar(bookingDoctor.name, bookingDoctor._id)} 
                         alt={`Dr. ${bookingDoctor.name}`} 
-                        style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
+                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', opacity: 0.9 }}
                       />
                       <div>
-                        <div style={{ fontWeight: '700', color: '#0f172a' }}>Dr. {bookingDoctor.name}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-                          {bookingDoctor.specialization || bookingDoctor.doctorDetails?.specialization || 'General Dentist'}
+                        <div style={{ fontWeight: '700', color: '#102a20', fontSize: '15px' }}>Dr. {bookingDoctor.name}</div>
+                        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
+                          {bookingDoctor.specialization || bookingDoctor.doctorDetails?.specialization || 'General Dentist'} • {(bookingDoctor.clinicName || bookingDoctor.doctorDetails?.clinicName || 'Clinic').toLowerCase()}
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontWeight: '600' }}>Select Dentist</label>
+                      <label className="form-label" style={{ fontWeight: '600', color: '#102a20' }}>Select Dentist</label>
                       {doctors.length === 0 ? (
                         <div style={{ fontSize: '13px', color: '#ef4444', fontWeight: '500' }}>
                           No doctors available in your city ({user?.city || 'Your City'}) yet. Please update your profile city first.
@@ -2095,8 +2103,10 @@ export default function PatientDashboard() {
                         <select
                           id="modalSelectDoctor"
                           required
+                          value={modalSelectedDocId || (doctors[0] ? doctors[0]._id : '')}
+                          onChange={(e) => setModalSelectedDocId(e.target.value)}
                           className="admin-search-input"
-                          style={{ paddingLeft: '16px', border: '1.5px solid #e2e8f0', borderRadius: '8px', height: '42px', width: '100%' }}
+                          style={{ paddingLeft: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', height: '48px', width: '100%', background: '#f8f7f5', color: '#64748b', outline: 'none' }}
                         >
                           {doctors.map(d => (
                             <option key={d._id} value={d._id}>
@@ -2108,47 +2118,51 @@ export default function PatientDashboard() {
                     </div>
                   )}
 
+
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontWeight: '600' }}>Preferred Date</label>
+                    <label className="form-label" style={{ fontWeight: '600', color: '#102a20' }}>Preferred date</label>
                     <input
                       type="date"
                       required
                       min={new Date().toISOString().split('T')[0]}
                       value={bookingDate}
                       onChange={(e) => setBookingDate(e.target.value)}
-                      className="admin-search-input"
-                      style={{ paddingLeft: '16px', border: '1.5px solid #e2e8f0', borderRadius: '8px', height: '42px', width: '100%' }}
+                      style={{ padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#f8f7f5', color: '#64748b', width: '100%', outline: 'none', height: '48px' }}
                     />
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontWeight: '600' }}>Preferred Time Slot</label>
-                    <select
-                      value={bookingTime}
-                      onChange={(e) => setBookingTime(e.target.value)}
-                      className="admin-search-input"
-                      style={{ paddingLeft: '16px', border: '1.5px solid #e2e8f0', borderRadius: '8px', height: '42px', width: '100%' }}
-                    >
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="09:30 AM">09:30 AM</option>
-                      <option value="10:00 AM">10:00 AM</option>
-                      <option value="10:30 AM">10:30 AM</option>
-                      <option value="11:00 AM">11:00 AM</option>
-                      <option value="11:30 AM">11:30 AM</option>
-                      <option value="12:00 PM">12:00 PM</option>
-                      <option value="01:30 PM">01:30 PM</option>
-                      <option value="02:00 PM">02:00 PM</option>
-                      <option value="02:30 PM">02:30 PM</option>
-                      <option value="03:00 PM">03:00 PM</option>
-                      <option value="03:30 PM">03:30 PM</option>
-                      <option value="04:00 PM">04:00 PM</option>
-                    </select>
+                    <label className="form-label" style={{ fontWeight: '600', color: '#102a20' }}>Preferred time slot</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM']
+                        .filter(t => !bookedSlots.includes(t))
+                        .map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setBookingTime(t)}
+                          style={{
+                            padding: '10px 20px',
+                            borderRadius: '24px',
+                            border: bookingTime === t ? 'none' : '1px solid #e2e8f0',
+                            background: bookingTime === t ? '#0f4035' : '#f8f7f5',
+                            color: bookingTime === t ? '#fff' : '#64748b',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                 </div>
-                <div className="modal-footer" style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button type="button" className="btn btn-ghost" onClick={() => { setBookingDoctor(null); setShowBookNewVisitModal(false); }}>Cancel</button>
-                  <button type="submit" disabled={doctors.length === 0 && !bookingDoctor} className="btn btn-primary" style={{ background: '#2563eb' }}>Book Appointment</button>
+                <div className="modal-footer" style={{ padding: '24px 20px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' }}>
+                  <button type="button" onClick={() => { setBookingDoctor(null); setShowBookNewVisitModal(false); }} style={{ padding: '10px 24px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" disabled={doctors.length === 0 && !bookingDoctor} style={{ padding: '10px 24px', borderRadius: '12px', border: 'none', background: '#0f4035', color: '#fff', fontWeight: '600', cursor: 'pointer' }}>Book appointment</button>
                 </div>
               </form>
             </div>
