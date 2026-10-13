@@ -124,17 +124,42 @@ exports.addFeedback = async (req, res) => {
   }
 };
 
+const Appointment = require('../models/Appointment');
+
 exports.getStats = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ userId: req.user._id });
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
 
     const totalReports = await Report.countDocuments({ doctorId: doctor._id });
-    const pendingReports = await Report.countDocuments({ doctorId: doctor._id, status: 'assigned' });
+    // Reports assigned to doctor that have not been reviewed yet (status !== 'reviewed')
+    const pendingReports = await Report.countDocuments({ 
+      doctorId: doctor._id, 
+      status: { $in: ['assigned', 'completed', 'processing'] } 
+    });
     const reviewedReports = await Report.countDocuments({ doctorId: doctor._id, status: 'reviewed' });
     const recentReports = await Report.find({ doctorId: doctor._id }).sort({ createdAt: -1 }).limit(5);
 
-    res.json({ totalReports, pendingReports, reviewedReports, recentReports, doctor });
+    // Today's appointments for this doctor
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const todayAppointments = await Appointment.countDocuments({
+      doctorId: doctor._id,
+      date: { $gte: startOfToday, $lte: endOfToday },
+      status: { $nin: ['canceled'] }
+    });
+
+    res.json({ 
+      totalReports, 
+      pendingReports, 
+      reviewedReports, 
+      todayAppointments, 
+      recentReports, 
+      doctor 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

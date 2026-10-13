@@ -316,9 +316,9 @@ export default function DoctorDashboard() {
             onClick={() => { setActiveSection('reports'); setSidebarOpen(false); }}
           >
             <span>Patient Reports</span>
-            {reports.filter(r => r.status === 'assigned').length > 0 && (
+            {reports.filter(r => r.status !== 'reviewed').length > 0 && (
               <span className="nav-badge">
-                {reports.filter(r => r.status === 'assigned').length}
+                {reports.filter(r => r.status !== 'reviewed').length}
               </span>
             )}
           </button>
@@ -402,7 +402,7 @@ export default function DoctorDashboard() {
                 </div>
               )}
 
-              <div className="stats-grid">
+              <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 <div className="stat-card">
                   <div className="stat-icon-wrapper-new blue">
                     <FileText size={20} />
@@ -412,13 +412,31 @@ export default function DoctorDashboard() {
                     <div className="stat-label">Total Reports</div>
                   </div>
                 </div>
+                {/* 1. Pending Reviews Card (Circle 1) */}
                 <div className="stat-card">
                   <div className="stat-icon-wrapper-new amber">
                     <Clock size={20} />
                   </div>
                   <div>
-                    <div className="stat-value">{stats.pendingReports || 0}</div>
+                    <div className="stat-value">{stats.pendingReports ?? reports.filter(r => r.status !== 'reviewed').length}</div>
                     <div className="stat-label">Pending Reviews</div>
+                  </div>
+                </div>
+                {/* 2. Today's Appointments Card (Circle 2) */}
+                <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => setActiveSection('appointments')}>
+                  <div className="stat-icon-wrapper-new green">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <div className="stat-value">{stats.todayAppointments ?? appointments.filter(a => {
+                      if (a.status === 'canceled') return false;
+                      const apptDate = new Date(a.date);
+                      const today = new Date();
+                      return apptDate.getFullYear() === today.getFullYear() &&
+                             apptDate.getMonth() === today.getMonth() &&
+                             apptDate.getDate() === today.getDate();
+                    }).length}</div>
+                    <div className="stat-label">Today's Appointments</div>
                   </div>
                 </div>
                 <div className="stat-card">
