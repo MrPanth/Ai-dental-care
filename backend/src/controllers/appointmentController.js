@@ -111,12 +111,20 @@ exports.getMyAppointments = async (req, res) => {
 
     // Batch-fetch current profilePhoto for all distinct doctors in one query
     const doctorIds = [...new Set(appointments.map(a => a.doctorId?.toString()).filter(Boolean))];
-    const doctorDocs = await Doctor.find({ _id: { $in: doctorIds } }).select('_id profilePhoto');
+    const patientIds = [...new Set(appointments.map(a => a.patientId?.toString()).filter(Boolean))];
+
+    const [doctorDocs, patientDocs] = await Promise.all([
+      Doctor.find({ _id: { $in: doctorIds } }).select('_id profilePhoto clinicName clinicAddress specialization'),
+      Patient.find({ _id: { $in: patientIds } }).select('_id name email phone age gender city medicalHistory')
+    ]);
+
     const photoMap = Object.fromEntries(doctorDocs.map(d => [d._id.toString(), d.profilePhoto || null]));
+    const patientMap = Object.fromEntries(patientDocs.map(p => [p._id.toString(), p]));
 
     const appointmentsWithPhotos = appointments.map(appt => ({
       ...appt.toObject(),
-      doctorProfilePhoto: photoMap[appt.doctorId?.toString()] ?? null
+      doctorProfilePhoto: photoMap[appt.doctorId?.toString()] ?? null,
+      patientDetails: patientMap[appt.patientId?.toString()] ?? null
     }));
 
     res.json({ appointments: appointmentsWithPhotos });

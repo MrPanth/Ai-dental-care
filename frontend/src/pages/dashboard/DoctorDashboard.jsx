@@ -75,6 +75,10 @@ export default function DoctorDashboard() {
   const [notes, setNotes] = useState('');
   const [recommendation, setRecommendation] = useState('');
 
+  // Appointment Details Modal state
+  const [viewingAppointment, setViewingAppointment] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
   // Profile Form state
   const [profileSpecialization, setProfileSpecialization] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
@@ -130,16 +134,82 @@ export default function DoctorDashboard() {
     }
   }, [profileCitySearch]);
 
+  const handleConfirmAppointment = async (id) => {
+    setActionLoading(true);
+    try {
+      await appointmentService.confirmAppointment(id);
+      alert('Appointment confirmed successfully!');
+      const apptsData = await appointmentService.getMyAppointments();
+      const updated = apptsData.appointments || [];
+      setAppointments(updated);
+      if (viewingAppointment && viewingAppointment._id === id) {
+        setViewingAppointment(updated.find(a => a._id === id) || null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to confirm appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectAppointment = async (id) => {
+    if (!window.confirm('Decline this appointment request?')) return;
+    setActionLoading(true);
+    try {
+      await appointmentService.rejectAppointment(id);
+      alert('Appointment request declined');
+      const apptsData = await appointmentService.getMyAppointments();
+      const updated = apptsData.appointments || [];
+      setAppointments(updated);
+      if (viewingAppointment && viewingAppointment._id === id) {
+        setViewingAppointment(updated.find(a => a._id === id) || null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to decline appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCompleteAppointment = async (id) => {
+    if (!window.confirm('Mark this clinical check-up as completed?')) return;
+    setActionLoading(true);
+    try {
+      await appointmentService.completeAppointment(id);
+      alert('Check-up marked as completed!');
+      const apptsData = await appointmentService.getMyAppointments();
+      const updated = apptsData.appointments || [];
+      setAppointments(updated);
+      if (viewingAppointment && viewingAppointment._id === id) {
+        setViewingAppointment(updated.find(a => a._id === id) || null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to complete appointment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCancelAppointment = async (id) => {
     if (!window.confirm('Cancel appointment?')) return;
+    setActionLoading(true);
     try {
       await appointmentService.cancelAppointment(id);
       alert('Appointment cancelled');
       const apptsData = await appointmentService.getMyAppointments();
-      setAppointments(apptsData.appointments || []);
+      const updated = apptsData.appointments || [];
+      setAppointments(updated);
+      if (viewingAppointment && viewingAppointment._id === id) {
+        setViewingAppointment(updated.find(a => a._id === id) || null);
+      }
     } catch (err) {
       console.error(err);
-      alert('Failed to cancel appointment');
+      alert(err.response?.data?.message || 'Failed to cancel appointment');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -499,19 +569,24 @@ export default function DoctorDashboard() {
                               <td>{new Date(appt.date).toLocaleDateString()}</td>
                               <td>{appt.time}</td>
                               <td>
-                                <span className={`badge badge-${appt.status === 'confirmed' ? 'green' : 'red'}`}>{appt.status}</span>
+                                <span className={`badge badge-${
+                                  appt.status === 'confirmed' ? 'green' : 
+                                  appt.status === 'pending' ? 'amber' : 
+                                  appt.status === 'completed' ? 'blue' : 'red'
+                                }`}>
+                                  {appt.status}
+                                </span>
                               </td>
                               <td>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                  {appt.status !== 'canceled' && (
-                                    <button 
-                                      type="button" 
-                                      className="btn btn-outline btn-sm btn-danger-hover" 
-                                      onClick={() => handleCancelAppointment(appt._id)}
-                                    >
-                                      <X size={12} /> Cancel Appointment
-                                    </button>
-                                  )}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-outline btn-sm" 
+                                    onClick={() => setViewingAppointment(appt)}
+                                    style={{ borderColor: 'var(--border)', color: '#334155' }}
+                                  >
+                                    View Details
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -772,6 +847,196 @@ export default function DoctorDashboard() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setSelectedReport(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Appointment Details Modal */}
+      {viewingAppointment && (
+        <div className="modal-overlay open" onClick={() => setViewingAppointment(null)}>
+          <div className="modal" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Appointment Details</span>
+              <button className="modal-close" onClick={() => setViewingAppointment(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Patient Info Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ 
+                  width: '54px', 
+                  height: '54px', 
+                  borderRadius: '50%', 
+                  background: '#eff6ff', 
+                  color: '#2563eb', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  fontWeight: '700'
+                }}>
+                  {viewingAppointment.patientName ? viewingAppointment.patientName.slice(0, 2).toUpperCase() : 'PT'}
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 2px 0' }}>
+                    {viewingAppointment.patientName}
+                  </h4>
+                  <p style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', margin: 0 }}>
+                    Patient ID: #{viewingAppointment.patientId?.slice(-6) || '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Schedule Details */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Date</div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
+                    {new Date(viewingAppointment.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Time Slot</div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
+                    {viewingAppointment.time}
+                  </div>
+                </div>
+              </div>
+
+              {/* Clinic & Location */}
+              <div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Clinic Location</div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
+                  {viewingAppointment.doctorClinicName || user?.clinicName || 'AI Dental Clinic'}
+                </div>
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                  {viewingAppointment.doctorClinicAddress || user?.clinicAddress || 'Clinic Address'}
+                </div>
+              </div>
+
+              {/* Patient Profile Highlights (if available) */}
+              {viewingAppointment.patientDetails && (
+                <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', marginBottom: '6px' }}>Patient Info</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '13px', color: '#334155' }}>
+                    <div><strong>City:</strong> <span style={{ textTransform: 'capitalize' }}>{viewingAppointment.patientDetails.city || '—'}</span></div>
+                    <div><strong>Age:</strong> {viewingAppointment.patientDetails.age || '—'}</div>
+                    <div><strong>Gender:</strong> <span style={{ textTransform: 'capitalize' }}>{viewingAppointment.patientDetails.gender || '—'}</span></div>
+                  </div>
+                  {viewingAppointment.patientDetails.phone && (
+                    <div style={{ fontSize: '13px', color: '#334155', marginTop: '6px' }}>
+                      <strong>Phone:</strong> {viewingAppointment.patientDetails.phone}
+                    </div>
+                  )}
+                  {viewingAppointment.patientDetails.medicalHistory && (
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
+                      <strong>Medical History:</strong> {viewingAppointment.patientDetails.medicalHistory}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Status Section */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '10px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Check-up Status:</span>
+                <span 
+                  style={{
+                    display: 'inline-block',
+                    padding: '4px 14px',
+                    borderRadius: '99px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    textTransform: 'capitalize',
+                    background: viewingAppointment.status === 'confirmed' ? '#dcfce7' : 
+                                viewingAppointment.status === 'pending' ? '#fef3c7' : 
+                                viewingAppointment.status === 'completed' ? '#dbeafe' : '#fee2e2',
+                    color: viewingAppointment.status === 'confirmed' ? '#15803d' : 
+                           viewingAppointment.status === 'pending' ? '#b45309' : 
+                           viewingAppointment.status === 'completed' ? '#1d4ed8' : '#b91c1c',
+                  }}
+                >
+                  {viewingAppointment.status}
+                </span>
+              </div>
+
+            </div>
+
+            {/* Modal Footer with Actions */}
+            <div className="modal-footer" style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+              
+              {/* PENDING State: Doctor can Confirm or Decline */}
+              {viewingAppointment.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    className="btn btn-outline btn-sm btn-danger-hover"
+                    onClick={() => handleRejectAppointment(viewingAppointment._id)}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    Decline Request
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleConfirmAppointment(viewingAppointment._id)}
+                    style={{ borderRadius: '8px', background: '#16a34a', borderColor: '#16a34a' }}
+                  >
+                    <Check size={14} style={{ marginRight: '4px' }} />
+                    Confirm Appointment
+                  </button>
+                </>
+              )}
+
+              {/* CONFIRMED State: Doctor can Mark as Completed or Cancel */}
+              {viewingAppointment.status === 'confirmed' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    className="btn btn-outline btn-sm btn-danger-hover"
+                    onClick={() => handleCancelAppointment(viewingAppointment._id)}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    Cancel Appointment
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleCompleteAppointment(viewingAppointment._id)}
+                    style={{ borderRadius: '8px', background: '#2563eb', borderColor: '#2563eb' }}
+                  >
+                    <CheckCircle size={14} style={{ marginRight: '4px' }} />
+                    Mark Check-up Completed
+                  </button>
+                </>
+              )}
+
+              {/* COMPLETED State: Inspection badge */}
+              {viewingAppointment.status === 'completed' && (
+                <div style={{ color: '#16a34a', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle size={16} /> Check-up finished and completed
+                </div>
+              )}
+
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => setViewingAppointment(null)} 
+                style={{ borderRadius: '8px' }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

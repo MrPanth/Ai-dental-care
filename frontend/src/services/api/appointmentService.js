@@ -24,5 +24,20 @@ export const appointmentService = {
   getBookedSlots: async (doctorId, date) => {
     const response = await apiClient.get(`/api/appointments/booked-slots?doctorId=${doctorId}&date=${date}`);
     return response.data;
+  },
+
+  confirmAppointment: async (id) => {
+    const response = await apiClient.put(`/api/appointments/${id}/confirm`);
+    return response.data;
+  },
+
+  rejectAppointment: async (id) => {
+    const response = await apiClient.put(`/api/appointments/${id}/reject`);
+    return response.data;
+  },
+
+  completeAppointment: async (id) => {
+    const response = await apiClient.put(`/api/appointments/${id}/complete`);
+    return response.data;
   }
 };
