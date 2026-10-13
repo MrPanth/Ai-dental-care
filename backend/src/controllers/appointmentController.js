@@ -303,3 +303,29 @@ exports.rescheduleAppointment = async (req, res) => {
   }
 };
 
+exports.getBookedSlots = async (req, res) => {
+  try {
+    const { doctorId, date } = req.query;
+    if (!doctorId || !date) {
+      return res.status(400).json({ message: 'Doctor ID and date are required' });
+    }
+    
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const appointments = await Appointment.find({
+      doctorId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $nin: ['canceled'] }
+    });
+
+    const bookedSlots = appointments.map(appt => appt.time);
+    res.json({ bookedSlots });
+  } catch (error) {
+    console.error('Get booked slots error:', error);
+    res.status(500).json({ message: 'Server error fetching booked slots' });
+  }
+};
+

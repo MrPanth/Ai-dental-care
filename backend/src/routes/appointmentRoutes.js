@@ -9,7 +9,8 @@ const {
   confirmAppointment, 
   rejectAppointment, 
   completeAppointment,
-  rescheduleAppointment
+  rescheduleAppointment,
+  getBookedSlots
 } = require('../controllers/appointmentController');
 
 // All appointment routes require authentication
@@ -27,6 +28,9 @@ router.put('/:id/confirm', authorize('doctor'), confirmAppointment);
 router.put('/:id/reject', authorize('doctor'), rejectAppointment);
 router.put('/:id/complete', authorize('doctor'), completeAppointment);
 
+
+// Patient gets booked slots for a doctor on a date
+router.get('/booked-slots', authorize('patient'), getBookedSlots);
 
 // Anyone (Doctor, Patient, Admin) can get their respective appointments
 router.get('/my-appointments', getMyAppointments);
