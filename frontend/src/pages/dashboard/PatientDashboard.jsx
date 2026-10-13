@@ -87,6 +87,29 @@ const getDoctorRating = (doctorName = '', doctorId = '') => {
   return { rating: rating.toFixed(1), reviewsCount };
 };
 
+const ALL_TIME_SLOTS = [
+  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'
+];
+
+const isSlotInPast = (dateStr, slotStr) => {
+  if (!dateStr || !slotStr) return false;
+  const match = slotStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return false;
+
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return false;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === 'PM' && hours < 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
+
+  const slotDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return slotDate.getTime() <= Date.now();
+};
+
 const getPatientAvatar = (gender = '') => {
   if (String(gender).toLowerCase() === 'female') {
     return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=250';
@@ -128,6 +151,7 @@ export default function PatientDashboard() {
   const [viewingAppointment, setViewingAppointment] = useState(null);
   const [showBookNewVisitModal, setShowBookNewVisitModal] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [rescheduleBookedSlots, setRescheduleBookedSlots] = useState([]);
   const [modalSelectedDocId, setModalSelectedDocId] = useState('');
 
   // Profile Form
@@ -280,14 +304,39 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     const docId = bookingDoctor?._id || modalSelectedDocId || (doctors[0]?._id);
-    if (showBookNewVisitModal && docId && bookingDate) {
+    if ((showBookNewVisitModal || bookingDoctor) && docId && bookingDate) {
       appointmentService.getBookedSlots(docId, bookingDate)
-        .then(res => setBookedSlots(res.bookedSlots || []))
+        .then(res => {
+          const booked = res.bookedSlots || [];
+          setBookedSlots(booked);
+          const available = ALL_TIME_SLOTS.filter(t => !booked.includes(t) && !isSlotInPast(bookingDate, t));
+          if (available.length > 0 && (!bookingTime || !available.includes(bookingTime))) {
+            setBookingTime(available[0]);
+          }
+        })
         .catch(err => console.error('Failed to get booked slots', err));
     } else {
       setBookedSlots([]);
     }
   }, [bookingDoctor, modalSelectedDocId, bookingDate, showBookNewVisitModal, doctors]);
+
+  useEffect(() => {
+    if (reschedulingAppointment && rescheduleDate) {
+      const docId = reschedulingAppointment.doctorId;
+      appointmentService.getBookedSlots(docId, rescheduleDate)
+        .then(res => {
+          const booked = (res.bookedSlots || []).filter(t => t !== reschedulingAppointment.time);
+          setRescheduleBookedSlots(booked);
+          const available = ALL_TIME_SLOTS.filter(t => !booked.includes(t) && !isSlotInPast(rescheduleDate, t));
+          if (available.length > 0 && (!rescheduleTime || !available.includes(rescheduleTime))) {
+            setRescheduleTime(available[0]);
+          }
+        })
+        .catch(err => console.error('Failed to get reschedule slots', err));
+    } else {
+      setRescheduleBookedSlots([]);
+    }
+  }, [reschedulingAppointment, rescheduleDate]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -2007,26 +2056,28 @@ export default function PatientDashboard() {
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: '600' }}>Choose New Time Slot</label>
-                    <select
-                      value={rescheduleTime}
-                      onChange={(e) => setRescheduleTime(e.target.value)}
-                      className="admin-search-input"
-                      style={{ paddingLeft: '16px', border: '1.5px solid #e2e8f0', borderRadius: '8px', height: '42px', width: '100%' }}
-                    >
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="09:30 AM">09:30 AM</option>
-                      <option value="10:00 AM">10:00 AM</option>
-                      <option value="10:30 AM">10:30 AM</option>
-                      <option value="11:00 AM">11:00 AM</option>
-                      <option value="11:30 AM">11:30 AM</option>
-                      <option value="12:00 PM">12:00 PM</option>
-                      <option value="01:30 PM">01:30 PM</option>
-                      <option value="02:00 PM">02:00 PM</option>
-                      <option value="02:30 PM">02:30 PM</option>
-                      <option value="03:00 PM">03:00 PM</option>
-                      <option value="03:30 PM">03:30 PM</option>
-                      <option value="04:00 PM">04:00 PM</option>
-                    </select>
+                    {(() => {
+                      const available = ALL_TIME_SLOTS.filter(t => !rescheduleBookedSlots.includes(t) && !isSlotInPast(rescheduleDate, t));
+                      if (available.length === 0) {
+                        return (
+                          <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px' }}>
+                            No available slots for the selected date. Please choose a different date.
+                          </div>
+                        );
+                      }
+                      return (
+                        <select
+                          value={rescheduleTime}
+                          onChange={(e) => setRescheduleTime(e.target.value)}
+                          className="admin-search-input"
+                          style={{ paddingLeft: '16px', border: '1.5px solid #e2e8f0', borderRadius: '8px', height: '42px', width: '100%' }}
+                        >
+                          {available.map(slot => (
+                            <option key={slot} value={slot}>{slot}</option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="modal-footer" style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2133,30 +2184,40 @@ export default function PatientDashboard() {
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontWeight: '600', color: '#102a20' }}>Preferred time slot</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      {['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM']
-                        .filter(t => !bookedSlots.includes(t))
-                        .map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setBookingTime(t)}
-                          style={{
-                            padding: '10px 20px',
-                            borderRadius: '24px',
-                            border: bookingTime === t ? 'none' : '1px solid #e2e8f0',
-                            background: bookingTime === t ? '#0f4035' : '#f8f7f5',
-                            color: bookingTime === t ? '#fff' : '#64748b',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
+                    {(() => {
+                      const available = ALL_TIME_SLOTS.filter(t => !bookedSlots.includes(t) && !isSlotInPast(bookingDate, t));
+                      if (available.length === 0) {
+                        return (
+                          <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px' }}>
+                            No available slots for the selected date. Please choose a different date.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                          {available.map(t => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setBookingTime(t)}
+                              style={{
+                                padding: '10px 20px',
+                                borderRadius: '24px',
+                                border: bookingTime === t ? 'none' : '1px solid #e2e8f0',
+                                background: bookingTime === t ? '#0f4035' : '#f8f7f5',
+                                color: bookingTime === t ? '#fff' : '#64748b',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                 </div>

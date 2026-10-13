@@ -19,8 +19,44 @@ exports.bookAppointment = async (req, res) => {
     const doctorProfile = await Doctor.findById(doctorId);
     if (!doctorProfile) return res.status(404).json({ message: 'Doctor not found' });
     
-    // Check for duplicates/concurrency (Simple check)
-    const existing = await Appointment.findOne({ doctorId: doctorProfile._id, date: new Date(date), time });
+    // Check if appointment is in the past
+    const apptDate = new Date(date);
+    if (isNaN(apptDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date provided' });
+    }
+
+    // Parse slot time (e.g., "10:30 AM" or "02:00 PM")
+    const parseSlotDateTime = (d, timeStr) => {
+      const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      const slotDate = new Date(d);
+      if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const meridiem = match[3].toUpperCase();
+        if (meridiem === 'PM' && hours < 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
+        slotDate.setHours(hours, minutes, 0, 0);
+      }
+      return slotDate;
+    };
+
+    const slotDateTime = parseSlotDateTime(date, time);
+    if (slotDateTime < new Date()) {
+      return res.status(400).json({ message: 'Cannot book an appointment for a past date or time slot' });
+    }
+
+    // Check for duplicates/concurrency (ignoring canceled appointments)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existing = await Appointment.findOne({ 
+      doctorId: doctorProfile._id, 
+      date: { $gte: startOfDay, $lte: endOfDay }, 
+      time,
+      status: { $nin: ['canceled'] }
+    });
     if (existing) return res.status(400).json({ message: 'This slot is already booked' });
 
     const appointment = await Appointment.create({
@@ -271,10 +307,40 @@ exports.rescheduleAppointment = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to reschedule this appointment' });
     }
 
+    const apptDate = new Date(date);
+    if (isNaN(apptDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date provided' });
+    }
+
+    const parseSlotDateTime = (d, timeStr) => {
+      const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      const slotDate = new Date(d);
+      if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const meridiem = match[3].toUpperCase();
+        if (meridiem === 'PM' && hours < 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
+        slotDate.setHours(hours, minutes, 0, 0);
+      }
+      return slotDate;
+    };
+
+    const slotDateTime = parseSlotDateTime(date, time);
+    if (slotDateTime < new Date()) {
+      return res.status(400).json({ message: 'Cannot reschedule to a past date or time slot' });
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const existing = await Appointment.findOne({
       doctorId: appointment.doctorId,
-      date: new Date(date),
+      date: { $gte: startOfDay, $lte: endOfDay },
       time,
+      status: { $nin: ['canceled'] },
       _id: { $ne: appointment._id }
     });
     if (existing) {
