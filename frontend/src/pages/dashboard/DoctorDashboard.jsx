@@ -52,6 +52,22 @@ const SPECIALIZATIONS = [
   'Prosthodontics', 'Cosmetic Dentistry'
 ];
 
+const isAppointmentInPast = (dateStr, slotStr) => {
+  if (!dateStr || !slotStr) return false;
+  const match = slotStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const apptDate = new Date(dateStr);
+  if (isNaN(apptDate.getTime())) return false;
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridiem = match[3].toUpperCase();
+    if (meridiem === 'PM' && hours < 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+    apptDate.setHours(hours, minutes, 0, 0);
+  }
+  return apptDate.getTime() <= Date.now();
+};
+
 export default function DoctorDashboard() {
   const { user, logout } = useAuthStore();
   const [activeSection, setActiveSection] = useState('overview');
@@ -998,29 +1014,38 @@ export default function DoctorDashboard() {
               )}
 
               {/* CONFIRMED State: Doctor can Mark as Completed or Cancel */}
-              {viewingAppointment.status === 'confirmed' && (
-                <>
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    className="btn btn-outline btn-sm btn-danger-hover"
-                    onClick={() => handleCancelAppointment(viewingAppointment._id)}
-                    style={{ borderRadius: '8px' }}
-                  >
-                    Cancel Appointment
-                  </button>
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleCompleteAppointment(viewingAppointment._id)}
-                    style={{ borderRadius: '8px', background: '#2563eb', borderColor: '#2563eb' }}
-                  >
-                    <CheckCircle size={14} style={{ marginRight: '4px' }} />
-                    Mark Check-up Completed
-                  </button>
-                </>
-              )}
+              {viewingAppointment.status === 'confirmed' && (() => {
+                const isTimeArrived = isAppointmentInPast(viewingAppointment.date, viewingAppointment.time);
+                return (
+                  <>
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      className="btn btn-outline btn-sm btn-danger-hover"
+                      onClick={() => handleCancelAppointment(viewingAppointment._id)}
+                      style={{ borderRadius: '8px' }}
+                    >
+                      Cancel Appointment
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionLoading || !isTimeArrived}
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleCompleteAppointment(viewingAppointment._id)}
+                      title={!isTimeArrived ? 'Can only mark completed once the appointment date & time has arrived' : ''}
+                      style={{ 
+                        borderRadius: '8px', 
+                        background: isTimeArrived ? '#2563eb' : '#94a3b8', 
+                        borderColor: isTimeArrived ? '#2563eb' : '#94a3b8',
+                        cursor: isTimeArrived ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      <CheckCircle size={14} style={{ marginRight: '4px' }} />
+                      {isTimeArrived ? 'Mark Check-up Completed' : 'Awaiting Visit (Scheduled)'}
+                    </button>
+                  </>
+                );
+              })()}
 
               {/* COMPLETED State: Inspection badge */}
               {viewingAppointment.status === 'completed' && (

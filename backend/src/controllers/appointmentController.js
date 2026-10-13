@@ -280,6 +280,28 @@ exports.completeAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Only confirmed appointments can be marked completed' });
     }
 
+    // Ensure the appointment date and time have actually arrived before allowing completion
+    const parseSlotDateTime = (d, timeStr) => {
+      const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      const slotDate = new Date(d);
+      if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const meridiem = match[3].toUpperCase();
+        if (meridiem === 'PM' && hours < 12) hours += 12;
+        if (meridiem === 'AM' && hours === 12) hours = 0;
+        slotDate.setHours(hours, minutes, 0, 0);
+      }
+      return slotDate;
+    };
+
+    const appointmentDateTime = parseSlotDateTime(appointment.date, appointment.time);
+    if (new Date() < appointmentDateTime) {
+      return res.status(400).json({ 
+        message: 'Cannot mark check-up as completed before the scheduled appointment date and time has occurred.' 
+      });
+    }
+
     appointment.status = 'completed';
     await appointment.save();
 
