@@ -316,11 +316,6 @@ export default function DoctorDashboard() {
             onClick={() => { setActiveSection('reports'); setSidebarOpen(false); }}
           >
             <span>Patient Reports</span>
-            {reports.filter(r => r.status !== 'reviewed').length > 0 && (
-              <span className="nav-badge">
-                {reports.filter(r => r.status !== 'reviewed').length}
-              </span>
-            )}
           </button>
           <button 
             type="button"
